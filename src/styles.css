@@ -1,0 +1,832 @@
+/* Shell design tokens only — the host broadcasts them and the cartridge
+   follows the user's theme with no palette of its own. Fallbacks are the
+   dark defaults so the page is still legible if it opens outside the shell. */
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-void, #0a0a0c);
+  color: var(--text-primary, #e6e6e6);
+}
+
+.wrap {
+  height: 100%;
+  overflow: auto;
+  padding: 20px 24px 32px;
+  box-sizing: border-box;
+}
+
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.01em; }
+h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted, #8b8b93); font-weight: 500; }
+h4 { margin: 0 0 4px; font-size: 12px; font-weight: 600; }
+
+.sub { margin: 4px 0 0; font-size: 13px; color: var(--text-muted, #8b8b93); }
+.muted { color: var(--text-muted, #8b8b93); }
+
+.tabs { display: flex; gap: 4px; flex-shrink: 0; }
+.tabs button { background: transparent; border: 1px solid transparent; }
+.tabs button.on { background: var(--bg-panel, #16161a); border-color: var(--border-subtle, #2a2a31); }
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.bar .count { font-size: 12px; color: var(--text-muted, #8b8b93); font-variant-numeric: tabular-nums; margin-left: auto; }
+
+button {
+  background: var(--bg-panel, #16161a);
+  color: var(--text-primary, #e6e6e6);
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) { border-color: var(--accent, #6f8cff); }
+button:disabled { opacity: 0.5; cursor: default; }
+
+input[type='text'], input.search {
+  background: var(--bg-panel, #16161a);
+  color: var(--text-primary, #e6e6e6);
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  min-width: 220px;
+}
+
+.intro {
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 8px;
+  padding: 18px 20px;
+  background: var(--bg-panel, #16161a);
+  max-width: 560px;
+}
+
+.intro > p { margin: 0 0 16px; font-size: 13px; color: var(--text-muted, #8b8b93); }
+
+.consent { border-top: 1px solid var(--border-subtle, #2a2a31); padding-top: 14px; }
+.consent strong { font-size: 13px; }
+.consent p { margin: 6px 0 8px; font-size: 12px; color: var(--text-muted, #8b8b93); }
+.consent ul { margin: 0; padding-left: 18px; }
+.consent li { font-size: 12px; margin: 2px 0; }
+
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.warn {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  border: 1px solid var(--accent, #6f8cff);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.warn span { color: var(--text-muted, #8b8b93); font-size: 12px; }
+.warn.err { border-color: var(--danger, #d16060); }
+.err { color: var(--danger, #d16060); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #8b8b93);
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--border-subtle, #2a2a31);
+}
+
+td {
+  padding: 9px 12px 9px 0;
+  border-bottom: 1px solid var(--border-subtle, #2a2a31);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: var(--bg-panel, #16161a); }
+tr.open td { background: var(--bg-panel, #16161a); }
+
+.num { text-align: right; padding-right: 16px; font-variant-numeric: tabular-nums; }
+.ago { font-variant-numeric: tabular-nums; color: var(--text-muted, #8b8b93); }
+.proj { color: var(--text-primary, #e6e6e6); }
+.kind { color: var(--text-muted, #8b8b93); font-size: 12px; }
+
+/* Recent activity is marked on the elapsed-time cell only. It says the row
+   moved a moment ago, which is provable — never that the agent "is working". */
+tr.fresh .ago { color: var(--accent, #6f8cff); font-weight: 600; }
+
+.empty { font-size: 13px; color: var(--text-muted, #8b8b93); margin-top: 18px; max-width: 560px; }
+.empty p { margin: 0 0 6px; }
+.empty .hint { color: var(--text-primary, #e6e6e6); }
+.empty .path code { font-size: 12px; word-break: break-all; }
+
+/* ── detail panel ─────────────────────────────────────────────────────────── */
+
+.detail {
+  margin-top: 20px;
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 8px;
+  background: var(--bg-panel, #16161a);
+  padding: 16px 18px;
+}
+
+.detail > header { margin-bottom: 14px; align-items: center; }
+.detail section { margin-bottom: 18px; }
+.detail section:last-child { margin-bottom: 0; }
+
+.files { margin: 0; padding-left: 18px; }
+.files li { font-size: 12px; margin: 3px 0; }
+/* A band heading carries its own count, the way the section labels above do. */
+.small .count {
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+  /* A token, never an opacity: alpha multiplies the token's own and drops the
+     text under the contrast floor. */
+  color: var(--text-muted, #8b8b93);
+}
+/* The caveat under the notes band sits between its heading and its list, so it
+   takes the heading's bottom margin rather than adding one of its own. */
+.small + .caveat { display: block; margin: 0 0 4px; }
+
+.summary p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; }
+.tone { margin-top: 12px; border-left: 2px solid var(--accent, #6f8cff); padding-left: 12px; }
+.caveat { font-size: 11px; color: var(--text-muted, #8b8b93); font-style: italic; }
+
+/* ── notes ────────────────────────────────────────────────────────────────── */
+
+.notes { list-style: none; margin: 0; padding: 0; }
+
+.notes li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle, #2a2a31);
+  cursor: pointer;
+}
+
+.notes li:hover { background: var(--bg-panel, #16161a); }
+.note-head { display: flex; align-items: baseline; gap: 10px; }
+.note-head strong { font-size: 13px; }
+.note-head .muted { font-size: 11px; }
+
+.tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--text-muted, #8b8b93);
+}
+
+.note-desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary, #e6e6e6);
+}
+
+.body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ── settings ─────────────────────────────────────────────────────────────── */
+
+.settings { max-width: 620px; }
+
+.settings .row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-subtle, #2a2a31);
+  cursor: pointer;
+}
+
+.settings .row.sub-row { padding-left: 28px; }
+.settings .row.disabled { opacity: 0.5; cursor: default; }
+.settings .row strong { display: block; font-size: 13px; font-weight: 500; }
+.settings .row em { display: block; margin-top: 3px; font-size: 12px; font-style: normal; color: var(--text-muted, #8b8b93); line-height: 1.45; }
+.settings .field input { display: block; margin-top: 6px; }
+.settings input[type='checkbox'] { margin-top: 3px; accent-color: var(--accent, #6f8cff); }
+
+/* ── the far view (zoomed-out canvas) ─────────────────────────────────────── */
+
+/* Every length here is set INLINE, divided by the zoom, so the card keeps a
+   constant apparent size however far out the canvas is. The stylesheet only
+   carries what does not scale: layout, colour, weight. */
+.far {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.far-grid { display: flex; flex-wrap: wrap; justify-content: center; }
+
+.far-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-style: solid;
+  border-color: var(--border-subtle, #2a2a31);
+  background: var(--bg-panel, #16161a);
+}
+
+.far-card.on { border-color: var(--accent, #6f8cff); }
+.far-mark { font-weight: 700; text-transform: uppercase; }
+.far-live { font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.far-cap { text-transform: uppercase; color: var(--text-muted, #8b8b93); }
+.far-total { color: var(--text-muted, #8b8b93); }
+
+.far-alert {
+  border: 1px solid var(--accent, #6f8cff);
+  color: var(--accent, #6f8cff);
+  font-weight: 600;
+}
+
+/* ── dashboard ────────────────────────────────────────────────────────────── */
+
+h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted, #8b8b93);
+}
+
+.gear {
+  font-size: 15px;
+  line-height: 1;
+  padding: 6px 10px;
+  flex-shrink: 0;
+}
+
+.stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  flex: 1;
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 8px;
+  background: var(--bg-panel, #16161a);
+  padding: 12px 16px;
+}
+
+.stat b {
+  display: block;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat span {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted, #8b8b93);
+}
+
+.stat.on { border-color: var(--accent, #6f8cff); }
+.stat.on b { color: var(--accent, #6f8cff); }
+
+.block { margin-bottom: 22px; }
+.block > h2 { margin-bottom: 8px; }
+
+.block-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.block-head .search { margin-left: auto; }
+.block-head .count { font-size: 12px; color: var(--text-muted, #8b8b93); font-variant-numeric: tabular-nums; }
+
+.block table td:first-child { width: 64px; }
+.dim { color: var(--text-muted, #8b8b93); }
+
+.settings .row.last { border-bottom: none; }
+.settings .folder {
+  display: block;
+  margin: 4px 0 8px;
+  font-size: 12px;
+  color: var(--text-muted, #8b8b93);
+  word-break: break-all;
+}
+
+.confirm { display: flex; gap: 8px; margin-top: 6px; }
+.danger { border-color: var(--danger, #d16060); color: var(--danger, #d16060); }
+.danger:hover { border-color: var(--danger, #d16060); }
+
+/* ── head + sub-tabs ──────────────────────────────────────────────────────── */
+
+.head-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.tabs.small button { padding: 6px 12px; font-size: 12px; }
+.tabs.small .count { margin-left: 6px; color: var(--text-muted, #8b8b93); font-variant-numeric: tabular-nums; }
+
+/* ── note body, in the shell's note language (see lib/markdown) ───────────── */
+
+.md { font-size: 13px; line-height: 1.6; }
+.md-p { margin: 4px 0; }
+.md-gap { height: 8px; }
+.md-h1 { font-weight: 700; font-size: 1.45em; margin: 16px 0 8px; letter-spacing: -0.015em; }
+.md-h2 { font-weight: 700; font-size: 1.25em; margin: 12px 0 6px; letter-spacing: -0.015em; }
+.md-h3 { font-weight: 700; font-size: 1.1em; margin: 8px 0 4px; letter-spacing: -0.015em; }
+.md-hr { border: none; border-top: 1px solid var(--border-subtle, #2a2a31); margin: 12px 0; }
+.md-list { margin: 4px 0; padding-left: 20px; }
+.md-list li { margin: 3px 0; }
+
+.md-quote {
+  margin: 8px 0;
+  padding: 4px 0 4px 12px;
+  border-left: 2px solid var(--border-subtle, #2a2a31);
+  color: var(--text-muted, #8b8b93);
+}
+
+.md-pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.md-code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle, #2a2a31);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.md-link { color: var(--accent, #6f8cff); cursor: pointer; }
+.md-link:hover { text-decoration: underline; }
+
+/* Highlights carry meaning in these notes, so they must survive the read view.
+   Painted with the accent at low alpha rather than a fixed yellow, which would
+   be invisible in one of the two themes. */
+.md-mark {
+  background: color-mix(in srgb, var(--accent, #6f8cff) 22%, transparent);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* ── note drawer ──────────────────────────────────────────────────────────── */
+
+/* Fixed to the cartridge's own viewport, not the page: the iframe is the
+   window here, so the drawer spans the widget and nothing outside it. */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel, #16161a);
+  border-left: 1px solid var(--border-subtle, #2a2a31);
+  box-shadow: -18px 0 40px -24px rgba(0, 0, 0, 0.55);
+  transform: translateX(101%);
+  transition: transform 180ms ease;
+  z-index: 20;
+}
+
+.drawer.open { transform: translateX(0); }
+
+/* The slide is a nicety, not a requirement: anyone who asked the OS to stop
+   animating gets the drawer without the motion. */
+@media (prefers-reduced-motion: reduce) {
+  .drawer { transition: none; }
+}
+
+.drawer > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  margin: 0;
+  border-bottom: 1px solid var(--border-subtle, #2a2a31);
+  flex-shrink: 0;
+}
+
+.drawer > header strong { font-size: 14px; word-break: break-word; }
+
+.drawer-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 18px 28px;
+}
+
+/* The conversation's own name is the row: it is the only cell that tells two
+   sessions in the same project apart. */
+.what {
+  max-width: none;
+  width: 100%;
+  color: var(--text-primary, #e6e6e6);
+}
+
+/* An excerpt of the first message stands in when the harness never named the
+   conversation. Dimmed and italic so it never reads as a real title. */
+.excerpt { color: var(--text-muted, #8b8b93); font-style: italic; }
+
+.block table td:nth-child(2) { padding-right: 20px; }
+.detail > header .dim { font-size: 12px; margin-left: 10px; }
+
+/* Notes reachable from a session's detail. */
+.small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin: 10px 0 4px; }
+
+.note-links { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+
+.note-links li {
+  font-size: 12px;
+  padding: 3px 9px;
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.note-links li:hover { border-color: var(--accent, #6f8cff); }
+
+/* The circumstantial group reads quieter than the proven one: the difference
+   between "this session wrote it" and "it changed while this session ran" has
+   to be visible before the caveat is read. */
+.note-links.weak li { border-style: dashed; color: var(--text-muted, #8b8b93); }
+
+/* ── the runs table never scrolls sideways ────────────────────────────────── */
+
+/* Fixed layout so the title column absorbs the slack instead of the table
+   growing past the widget and forcing a horizontal scrollbar. */
+table.runs { table-layout: fixed; }
+table.runs td:nth-child(1) { width: 68px; }
+table.runs td:nth-child(3) { width: 150px; }
+table.runs td:nth-child(4) { width: 120px; }
+table.runs td:nth-child(5) { width: 44px; }
+table.runs td:nth-child(6) { width: 82px; }
+table.runs td { max-width: 0; }          /* lets ellipsis apply inside fixed layout */
+table.runs .what { color: var(--text-primary, #e6e6e6); }
+
+/* A wider drawer, and room to read: this is where notes and summaries are
+   actually consumed, so it gets the space rather than the list behind it. */
+.drawer { width: min(720px, 78%); }
+.drawer-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.drawer-title strong { font-size: 15px; }
+.drawer-title .dim { font-size: 12px; }
+.drawer-body { font-size: 13px; line-height: 1.6; }
+.drawer-body section { margin-bottom: 22px; }
+.drawer-body section:last-child { margin-bottom: 0; }
+
+/* ── which agent a row came from ──────────────────────────────────────────── */
+
+.source-mark { display: inline-flex; align-items: center; gap: 6px; }
+.source-mark svg { width: 15px; height: 15px; }
+.source-mark.inline .source-name { display: none; }
+
+.source-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.source-name { font-size: 11px; color: var(--text-muted, #8b8b93); }
+.block-head h2 { margin-right: 0; }
+
+/* ── hub : one card per agent ─────────────────────────────────────────────── */
+
+.head-left { display: flex; align-items: flex-start; gap: 10px; }
+
+.back {
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 12px;
+  background: transparent;
+  border-color: transparent;
+}
+
+.back:hover { border-color: var(--border-subtle, #2a2a31); }
+
+.hub {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.agent-card {
+  text-align: left;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--bg-panel, #16161a);
+  border: 1px solid var(--border-subtle, #2a2a31);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 108px;
+}
+
+.agent-card.live { border-color: var(--accent, #6f8cff); }
+
+.agent-head .source-name { font-size: 13px; color: var(--text-primary, #e6e6e6); }
+
+.agent-nums { display: flex; gap: 14px; flex-wrap: wrap; }
+.agent-nums span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted, #8b8b93); }
+.agent-nums b { display: block; font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--text-primary, #e6e6e6); text-transform: none; letter-spacing: 0; }
+.agent-nums .on b { color: var(--accent, #6f8cff); }
+
+.agent-state { margin: 0; font-size: 12px; }
+
+/* ── adding an agent ──────────────────────────────────────────────────────── */
+
+.agent-card.add {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  gap: 6px;
+}
+
+.agent-card.add:hover { border-color: var(--accent, #6f8cff); border-style: solid; }
+.agent-card.add .plus { font-size: 34px; line-height: 1; color: var(--text-muted, #8b8b93); }
+.agent-card.add:hover .plus { color: var(--accent, #6f8cff); }
+.agent-card.add .agent-state { color: var(--text-muted, #8b8b93); }
+
+.chooser { max-width: 620px; }
+.chooser .bar h2 { margin-right: auto; }
+
+.agent-choices { list-style: none; margin: 0 0 14px; padding: 0; }
+
+.agent-choices li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 8px;
+  background: var(--bg-panel, #16161a);
+  cursor: pointer;
+}
+
+.agent-choices li:hover { border-color: var(--accent, #6f8cff); }
+.agent-choices .source-name { font-size: 14px; color: var(--text-primary, #e6e6e6); }
+
+/* The folder the picker will open at, shown BEFORE the click: the person sees
+   where this is about to look rather than discovering it in a dialog. */
+.hint-path { margin-left: auto; font-size: 11px; color: var(--text-muted, #8b8b93); }
+
+/* A twin derived from a folder already designated. Marked, because "we found
+   this for you" and "you chose this" must not look the same. */
+.agent-choices li.found { border-color: var(--accent, #6f8cff); }
+
+.found-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent, #6f8cff);
+  white-space: nowrap;
+}
+
+/* ── the files browser ────────────────────────────────────────────────────── */
+
+/* Filters sit under the search, not in it: the search narrows what you are
+   looking for, these say what KIND of evidence you want to see. */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -6px 0 12px;
+}
+
+.filters button {
+  padding: 5px 11px;
+  font-size: 12px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted, #8b8b93);
+}
+
+.filters button.on {
+  background: var(--bg-panel, #16161a);
+  border-color: var(--border-subtle, #2a2a31);
+  color: var(--text-primary, #e6e6e6);
+}
+
+.filters button.spaced { margin-left: auto; }
+.filters .count { margin-left: 6px; font-variant-numeric: tabular-nums; }
+
+/* The button that replaced a silent slice. It carries the remaining count,
+   because "show more" without a number is the same lie in nicer words. */
+.more {
+  margin-top: 12px;
+  width: 100%;
+  color: var(--text-muted, #8b8b93);
+  font-size: 12px;
+}
+
+table.files-table { table-layout: fixed; }
+table.files-table td:nth-child(1) { width: 60px; }
+table.files-table td:nth-child(2) { width: 150px; }
+table.files-table td:nth-child(4) { width: 24px; text-align: center; }
+table.files-table td:nth-child(5) { width: 120px; }
+table.files-table td { max-width: 0; }
+table.files-table code { font-size: 12px; }
+
+/* Kept in memory. A dot rather than a word: it repeats on every row, and its
+   tooltip carries the vault — "kept" without saying where is half an answer. */
+.kept .dot { color: var(--accent, #6f8cff); font-size: 10px; }
+
+/* Read out of a command rather than recorded by the harness. Dashed, the same
+   language the "changed while it was open" list already speaks. */
+.files li.inferred code,
+.note-links li.inferred { border-bottom: 1px dashed var(--border-subtle, #2a2a31); }
+.files li { cursor: pointer; }
+.files li:hover code { color: var(--accent, #6f8cff); }
+
+/* ── one file, opened ─────────────────────────────────────────────────────── */
+
+.file-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.file-meta .muted { font-size: 11px; }
+.tag.weak { border-style: dashed; }
+
+.file-path { margin: 0; }
+.file-path code { font-size: 11px; color: var(--text-muted, #8b8b93); word-break: break-all; }
+
+.file-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+/* The heading takes the slack, so the actions stay grouped on the right
+   however many of them a file deserves. */
+.file-head h3 { margin-right: auto; }
+
+button.link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--text-muted, #8b8b93);
+}
+
+button.link:hover { color: var(--accent, #6f8cff); }
+
+/* The file itself. It scrolls inside its own box: a 4 000-line draft must not
+   turn the drawer into a page you have to scroll past to reach the button. */
+.file-body {
+  margin: 8px 0 0;
+  padding: 12px;
+  max-height: 420px;
+  overflow: auto;
+  background: var(--bg-void, #0a0a0c);
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* A markdown file, painted the way a note is painted. Same box as .file-body
+   so switching to the source does not move the panel under the cursor. */
+.file-md {
+  margin: 8px 0 0;
+  padding: 12px;
+  max-height: 420px;
+  overflow: auto;
+  background: var(--bg-void, #0a0a0c);
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 6px;
+}
+
+/* Frontmatter, kept visible and kept apart: it is metadata about the file,
+   and rendered as prose it reads as four stray lines of body text. */
+.file-front {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  background: var(--bg-surface, #131318);
+  border-left: 2px solid var(--border-subtle, #2a2a31);
+  border-radius: 4px;
+  color: var(--text-muted, #8b8b93);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── keeping a draft ──────────────────────────────────────────────────────── */
+
+.keep-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+
+.keep-row select {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-panel, #16161a);
+  color: var(--text-primary, #e6e6e6);
+  border: 1px solid var(--border-subtle, #2a2a31);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
+button.primary { border-color: var(--accent, #6f8cff); color: var(--accent, #6f8cff); }
+.kept-ok { margin: 8px 0 4px; font-size: 13px; color: var(--accent, #6f8cff); }
+
+/* ── walking back through the panel ───────────────────────────────────────── */
+
+/* Before this, following a link inside the drawer was a one-way trip: the only
+   control was Close. The arrows carry the NAME of their destination in the
+   tooltip, because an arrow alone makes you press it to find out. */
+.drawer-nav { display: flex; gap: 2px; flex-shrink: 0; }
+
+.drawer-nav .nav {
+  padding: 4px 9px;
+  font-size: 15px;
+  line-height: 1;
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted, #8b8b93);
+}
+
+.drawer-nav .nav:hover:not(:disabled) {
+  color: var(--text-primary, #e6e6e6);
+  border-color: var(--border-subtle, #2a2a31);
+}
+
+/* Disabled says "nowhere to go", so it must read as an end of the trail rather
+   than as a control that failed. */
+.drawer-nav .nav:disabled { opacity: 0.25; }
+
+/* The title takes the slack so the arrows and Close keep their size. */
+.drawer > header .drawer-title { flex: 1; }
+
+/* ── editing by hand ──────────────────────────────────────────────────────── */
+
+.panel-actions { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; }
+
+.editor { margin-top: 8px; }
+
+.editor-box {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 340px;
+  resize: vertical;
+  padding: 12px;
+  background: var(--bg-void, #0a0a0c);
+  color: var(--text-primary, #e6e6e6);
+  border: 1px solid var(--accent, #6f8cff);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.editor-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.editor-actions .small { margin: 0; text-transform: none; letter-spacing: 0; }
+
+/* A record and an inference, told apart the way they are everywhere else:
+   solid for what we wrote, dashed for what we merely deduce from an mtime. */
+.tag.edit-here { color: var(--accent, #6f8cff); border-color: var(--accent, #6f8cff); }
+.tag.edit-after { cursor: help; }

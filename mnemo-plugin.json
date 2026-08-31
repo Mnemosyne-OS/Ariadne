@@ -1,0 +1,28 @@
+{
+  "name": "@mnemosyne-plugins/ariadne",
+  "displayName": "Ariadne",
+  "version": "0.4.0",
+  "description": "Follow what your coding agents are doing, and keep the drafts worth keeping. Ariadne reads the session transcripts and memory notes your agents already write on this machine, lists every file they produced, including the ones written through a shell, and lets you send any of them into a vault you choose, one file at a time. It warns you when two sessions are live on the same branch, and can write a first-person summary of a session from your own messages. Nothing is read until you pick the folder, and nothing reaches memory without a press.",
+  "permissions": [
+    "dialog:open",
+    "model:infer",
+    "vault:read",
+    "vault:write"
+  ],
+  "_permissions": "vault:read lists the vaults so a save can name its destination; vault:write performs that save. Both are used ONLY on a press, one file at a time. There is no watcher, no rule and no standing import.",
+  "updateStrategy": "git",
+  "repository": "https://github.com/Mnemosyne-OS/Ariadne",
+  "entrypoints": {
+    "renderer": "index.html"
+  },
+  "widgets": [
+    {
+      "id": "ariadne-main",
+      "icon": "🧵",
+      "name": "Ariadne",
+      "route": "index.html",
+      "defaultWidth": 1180,
+      "defaultHeight": 760
+    }
+  ]
+}

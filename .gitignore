@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+*.log
+vite.config.ts.timestamp-*.mjs
+
+# dist/ is deliberately NOT ignored here.
+# A cartridge is installed by downloading this repo tarball, so the built
+# assets have to be committed: nothing runs a build on the user machine.
