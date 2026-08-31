@@ -1,6 +1,6 @@
 {
   "name": "@mnemosyne-plugins/ariadne",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "description": "Every draft your coding agents wrote, browsable, and the ones worth keeping one press from your memory. Reads the session transcripts and documents they already write on this machine, locally.",
@@ -10,6 +10,7 @@
     "dev:cartridge": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.eslint.json",
     "lint": "eslint src --max-warnings 0",
     "lint:fix": "eslint src --fix",
     "test": "vitest run"

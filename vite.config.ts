@@ -23,6 +23,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.test.ts']
+    // {ts,tsx}: a .test.tsx used to match nothing here, so a rendering test
+    // would have been collected by nobody and passed for ever.
+    include: ['src/**/*.test.{ts,tsx}']
   }
 } as UserConfig & { test: Record<string, unknown> });

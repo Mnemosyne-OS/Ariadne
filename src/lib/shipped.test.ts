@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { STRINGS, dictFor, fill } from '../i18n';
-import { SOURCES } from './sources';
+import { SOURCES, sourceById } from './sources';
 import type { Connector } from '@mnemosyne_os/agent-transcripts';
 
 describe('locales', () => {
@@ -72,6 +72,14 @@ describe('shipped connectors', () => {
 
   it('gives every source a unique id', () => {
     expect(new Set(SOURCES.map(s => s.id)).size).toBe(SOURCES.length);
+  });
+
+  // The shell holds the open agent as `string | null`, null being the hub, and
+  // passes it straight in. A lookup that threw on null would take the hub down.
+  it('resolves an id, and answers null for the hub and for a stranger', () => {
+    for (const s of SOURCES) expect(sourceById(s.id)).toBe(s);
+    expect(sourceById(null)).toBeNull();
+    expect(sourceById('an-agent-that-was-removed')).toBeNull();
   });
 
   for (const { where, conn } of all) {

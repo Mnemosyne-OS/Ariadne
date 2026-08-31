@@ -7,13 +7,10 @@
  * unprovable, and a dead agent and an idle one produce the same silence. We
  * render the fact we can prove, "last seen X ago", and let the human conclude.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MnemoCartridgeSDK, onHostConfig } from './sdk/mnemo-sdk';
-import {
-  readSession, readDoc, walkSource, activeDirs, shouldSweep, collisionReport, liveSessions,
-  type SessionState, type DocState, type DirEntry,
-} from '@mnemosyne_os/agent-transcripts';
-import { SOURCES, sourceById, type Source } from './lib/sources';
+import { collisionReport, liveSessions } from '@mnemosyne_os/agent-transcripts';
+import { SOURCES, sourceById } from './lib/sources';
 import {
   loadSettings, saveSettings, resetSettings, rememberSaved, rememberEdited, savedKey,
   type SavedMark, type Settings,
@@ -24,9 +21,9 @@ import {
   EMPTY_HISTORY, canGoBack, canGoForward, currentPanel, goBack, goForward, navigate, trail,
   type PanelRef,
 } from './lib/panelHistory';
-import { baseName, sessionLabel } from './lib/format';
-import type { ScanStats } from './lib/shared';
-import { deriveCandidates, type Candidate } from './lib/siblings';
+import { panelTitle, panelSubtitle, entryLabel, type OpenedPanel } from './lib/panelLabels';
+import { useTwinCandidates } from './hooks/useTwinCandidates';
+import { useAgentScan, EMPTY } from './hooks/useAgentScan';
 import { renderMarkdown } from './lib/markdown';
 import { dictFor, type Dict } from './i18n';
 import Hub, { type SourceStatus } from './views/Hub';
@@ -43,24 +40,10 @@ import { ConsentCard } from './views/FolderGate';
 
 const sdk = new MnemoCartridgeSDK('@mnemosyne-plugins/ariadne');
 
-const POLL_MS = 5000;
-/** Sessions whose fingerprint changed are re-read; this caps how many of them
- *  we pull in one pass so a first run on a large folder stays responsive. */
-const MAX_SESSION_READS = 12;
 /** Below this canvas zoom the normal layout is unreadable, so we render the
  *  headline instead. Unknown zoom renders the normal view — never a degraded
  *  one on a guess. */
 const COMPACT_BELOW_ZOOM = 0.6;
-
-interface SourceData {
-  sessions: SessionState[];
-  docs: DocState[];
-  stats: ScanStats | null;
-  busy: boolean;
-  error: string | null;
-}
-
-const EMPTY: SourceData = { sessions: [], docs: [], stats: null, busy: false, error: null };
 
 export default function App(): JSX.Element {
   const [t, setT] = useState<Dict>(() => dictFor(navigator.language));
@@ -85,22 +68,8 @@ export default function App(): JSX.Element {
    *  another's path. */
   const [editing, setEditing] = useState(false);
 
-  const [data, setData] = useState<Record<string, SourceData>>({});
-  /** Twin agents found next to one already connected, offered in the chooser. */
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-
-  /** Per source, keyed "<sourceId>|<path>": the fingerprint "size:mtime" of a
-   *  file already read, and what it parsed to. Keyed by SOURCE, not by path
-   *  alone: two agents pointed at the same folder would otherwise hand each
-   *  other entries parsed with the wrong connector. */
-  const seen = useRef(new Map<string, string>());
-  /** Per source: the session directories a pass found files in, and when the
-   *  last full sweep ran. A buried layout costs one listing per session, so a
-   *  cheap pass revisits only what was recently active (see lib/walk). */
-  const activeBySource = useRef(new Map<string, string[]>());
-  const lastSweep = useRef(new Map<string, number>());
-  const sessionCache = useRef(new Map<string, SessionState>());
-  const docCache = useRef(new Map<string, DocState>());
+  const { data, forgetSource, forgetEverything, dropCached } = useAgentScan(
+    sdk, settings.folders, t.error);
 
   // Inherits the shell's theme and design tokens, follows its language, and
   // learns the canvas zoom it is painted at (which it cannot measure itself).
@@ -108,22 +77,6 @@ export default function App(): JSX.Element {
     if (cfg?.lang) { setT(dictFor(cfg.lang)); setLang(cfg.lang); }
     if (typeof cfg?.zoom === 'number') setZoom(cfg.zoom);
   }), []);
-
-  /**
-   * Forget everything read for one agent.
-   *
-   * Its walk memory goes too: keeping it would send the next cheap pass to the
-   * directories of the FOLDER THAT WAS JUST REPLACED, and nothing would appear
-   * until the sweep timer came round a minute later.
-   */
-  const forgetSource = useCallback((sourceId: string) => {
-    const mine = `${sourceId}|`;
-    for (const k of [...seen.current.keys()]) if (k.startsWith(mine)) seen.current.delete(k);
-    for (const k of [...sessionCache.current.keys()]) if (k.startsWith(mine)) sessionCache.current.delete(k);
-    for (const k of [...docCache.current.keys()]) if (k.startsWith(mine)) docCache.current.delete(k);
-    activeBySource.current.delete(sourceId);
-    lastSweep.current.delete(sourceId);
-  }, []);
 
   /**
    * Move to an agent, or back to the hub.
@@ -138,194 +91,12 @@ export default function App(): JSX.Element {
     setHistory(EMPTY_HISTORY);
   }, []);
 
-  const forgetEverything = useCallback(() => {
-    seen.current.clear();
-    sessionCache.current.clear();
-    docCache.current.clear();
-    activeBySource.current.clear();
-    lastSweep.current.clear();
-  }, []);
-
   const persist = useCallback((next: Settings) => {
     setSettings(next);
     saveSettings(next);
   }, []);
 
-  const scan = useCallback(async (source: Source, root: string) => {
-    setData(d => ({ ...d, [source.id]: { ...(d[source.id] ?? EMPTY), busy: true, error: null } }));
-    try {
-      const now = Date.now();
-      const sweep = shouldSweep(lastSweep.current.get(source.id) ?? null, now);
-      const { sessionFiles, noteFiles, entries } = await walkSource(
-        (dirPath) => sdk.invoke<{ success: boolean; files?: DirEntry[]; error?: string }>(
-          'dialog.readDir', { dirPath }),
-        root, source.sessions, source.notes,
-        { sweep, knownDirs: activeBySource.current.get(source.id) },
-      );
-      if (sweep) lastSweep.current.set(source.id, now);
-
-      // Newest first: mtime comes free with the listing, so recency costs no
-      // file reads at all. Only what actually moved is opened.
-      sessionFiles.sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0));
-      noteFiles.sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0));
-
-      let readError: string | null = null;
-      const read = async (f: DirEntry): Promise<string | null> => {
-        const res = await sdk.invoke<{ success: boolean; content?: string; error?: string }>(
-          'dialog.readFile', { filePath: f.path });
-        if (!res?.success || typeof res.content !== 'string') {
-          // Never swallow this. A silently skipped read looks exactly like an
-          // empty folder, and that is how a host-side refusal (an extension
-          // the bridge will not open, a file too large) stayed invisible.
-          if (!readError) readError = res?.error ?? 'read refused';
-          console.warn(`[Ariadne] read refused for ${f.name}: ${readError}`);
-          return null;
-        }
-        return res.content;
-      };
-
-      const key = (path: string) => `${source.id}|${path}`;
-
-      let reads = 0;
-      for (const f of sessionFiles) {
-        const print = `${f.sizeBytes ?? 0}:${f.mtime ?? 0}`;
-        if (seen.current.get(key(f.path)) === print && sessionCache.current.has(key(f.path))) continue;
-        if (reads >= MAX_SESSION_READS) break;
-        reads++;
-        const content = await read(f);
-        if (content === null) continue;
-        const st = readSession(source.sessions, f.name, f.path, content, f.sizeBytes ?? 0);
-        if (st && !st.title) {
-          const sessionDir = f.path.replace(/\\/g, '/').split('/').slice(0, -3).join('/');
-          for (const noteName of ['task.md', 'implementation_plan.md', 'walkthrough.md']) {
-            const metaPath = `${sessionDir}/${noteName}.metadata.json`;
-            const res = await sdk.invoke<{ success: boolean; content?: string }>(
-              'dialog.readFile', { filePath: metaPath });
-            if (res?.success && typeof res.content === 'string') {
-              try {
-                const meta = JSON.parse(res.content) as { summary?: string };
-                if (meta.summary?.trim()) {
-                  st.title = meta.summary.trim();
-                  break;
-                }
-              } catch {
-                // Ignore parse error
-              }
-            }
-          }
-        }
-        seen.current.set(key(f.path), print);
-        if (st) sessionCache.current.set(key(f.path), st);
-      }
-
-      // Notes are small and few; reading all of them in one pass is cheap and
-      // spares the user a list that fills in over several ticks.
-      if (source.notes) {
-        for (const f of noteFiles) {
-          const print = `${f.sizeBytes ?? 0}:${f.mtime ?? 0}`;
-          if (seen.current.get(key(f.path)) === print && docCache.current.has(key(f.path))) continue;
-          const content = await read(f);
-          if (content === null) continue;
-          // The sidecar is best-effort: it carries the description, and a
-          // document with none still belongs in the list.
-          let sidecar: string | null = null;
-          if (source.notes.sidecar) {
-            const res = await sdk.invoke<{ success: boolean; content?: string }>(
-              'dialog.readFile', { filePath: f.path + source.notes.sidecar.suffix });
-            if (res?.success && typeof res.content === 'string') sidecar = res.content;
-          }
-          seen.current.set(key(f.path), print);
-          docCache.current.set(key(f.path), readDoc(
-            source.notes, f.name, f.path, content, f.sizeBytes ?? 0, f.mtime ?? 0, sidecar));
-        }
-      }
-
-      // A cheap pass visits fewer directories than a sweep, so the FILES it
-      // returns are a subset. Rendering only those would make the list shrink
-      // and grow every five seconds; the cache is the full picture, and the
-      // pass only refreshes part of it.
-      const mine = `${source.id}|`;
-      const sessions = [...sessionCache.current.entries()]
-        .filter(([k]) => k.startsWith(mine))
-        .map(([, v]) => v)
-        .sort((a, b) => (b.lastEventAt ?? '').localeCompare(a.lastEventAt ?? ''));
-      activeBySource.current.set(source.id, activeDirs(sessionFiles, source.sessions));
-
-      const docs = [...docCache.current.entries()]
-        .filter(([k]) => k.startsWith(mine))
-        .map(([, v]) => v)
-        .sort((a, b) => b.mtime - a.mtime);
-
-      // Files were found but none could be opened: that is a refusal, not an
-      // empty folder, and it must say so rather than render a blank screen.
-      const found = sessionFiles.length + noteFiles.length;
-      const failed = readError && sessions.length + docs.length === 0 && found > 0;
-
-      setData(d => ({
-        ...d,
-        [source.id]: {
-          sessions, docs, busy: false,
-          stats: { entries, sessionFiles: sessionFiles.length, noteFiles: noteFiles.length },
-          error: failed ? readError : null,
-        },
-      }));
-    } catch (err) {
-      console.error(`[Ariadne] scan failed for ${source.id}:`, err);
-      setData(d => ({
-        ...d,
-        [source.id]: {
-          ...(d[source.id] ?? EMPTY),
-          busy: false,
-          error: err instanceof Error ? err.message : t.error,
-        },
-      }));
-    }
-  }, [t.error]);
-
-  /**
-   * A twin agent, offered once its sibling is connected.
-   *
-   * The previous version of this probed each connector's `folderHint` directly.
-   * It could never fire: a hint is HOME-RELATIVE, and the bridge resolves a
-   * relative path against the main process's working directory, so it looked
-   * for `<repo>/.gemini/antigravity/brain` and found nothing — silently.
-   *
-   * It must not be fixed by teaching the bridge to resolve home-relative paths
-   * either: `dialog:open` already reads any absolute path under the home, so
-   * the only thing keeping a cartridge out of `~/.ssh` is not knowing where it
-   * is. Instead the candidate is DERIVED from a folder the human already gave
-   * (see lib/siblings), probed with the absolute path that derivation yields,
-   * and merely offered — connecting it stays a click.
-   */
-  useEffect(() => {
-    let cancelled = false;
-    const derived = deriveCandidates(SOURCES, settings.folders);
-    if (derived.length === 0) { setCandidates([]); return; }
-
-    const probe = async () => {
-      const found: Candidate[] = [];
-      for (const c of derived) {
-        const res = await sdk.invoke<{ success: boolean; files?: DirEntry[] }>(
-          'dialog.readDir', { dirPath: c.path });
-        if (res?.success && res.files?.length) found.push(c);
-      }
-      if (!cancelled) setCandidates(found);
-    };
-    void probe();
-    return () => { cancelled = true; };
-  }, [settings.folders]);
-
-  // Every configured source is polled, not only the one being looked at: the
-  // hub shows live counts for all of them, and an unchanged file costs a
-  // directory listing and no read.
-  useEffect(() => {
-    const configured = SOURCES.filter(s => settings.folders[s.id]);
-    if (configured.length === 0) return;
-    const run = () => { for (const s of configured) void scan(s, settings.folders[s.id]); };
-    run();
-    const id = window.setInterval(run, POLL_MS);
-    return () => window.clearInterval(id);
-  }, [settings.folders, scan]);
+  const candidates = useTwinCandidates(sdk, settings.folders);
 
   const pick = useCallback(async (sourceId: string) => {
     const source = sourceById(sourceId);
@@ -339,7 +110,6 @@ export default function App(): JSX.Element {
     // Only THIS agent forgets. The other one keeps its cache and its walk
     // memory, so re-pointing one folder does not cost a full re-read of the other.
     forgetSource(sourceId);
-    setData(d => ({ ...d, [sourceId]: EMPTY }));
     persist({ ...settings, folders: { ...settings.folders, [sourceId]: chosen } });
     goToSource(sourceId);
   }, [settings, persist, forgetSource, goToSource]);
@@ -348,14 +118,12 @@ export default function App(): JSX.Element {
    *  was derived from one the human already designated, and shown before this. */
   const connectAt = useCallback((sourceId: string, folder: string) => {
     forgetSource(sourceId);
-    setData(d => ({ ...d, [sourceId]: EMPTY }));
     persist({ ...settings, folders: { ...settings.folders, [sourceId]: folder } });
     goToSource(sourceId);
   }, [settings, persist, forgetSource, goToSource]);
 
   const reset = useCallback(() => {
     forgetEverything();
-    setData({});
     goToSource(null);
     setSettings(resetSettings());
     setShowSettings(false);
@@ -431,39 +199,16 @@ export default function App(): JSX.Element {
   const openedFile = openFile
     ? buildArtifactRows(current.sessions, settings).find(r => r.path === openFile) ?? null
     : null;
-  const panelTitle = openedNote
-    ? openedNote.name
-    : openedFile
-      ? baseName(openedFile.path) ?? openedFile.path
-      : openedSession
-        ? sessionLabel(openedSession.title, openedSession.humanTurns[0]?.text, 46).text || t.unknown
-        : '';
-  const panelSubtitle = openedSession && source
-    ? `${source.sessions.mark?.label ?? source.sessions.displayName} · ${baseName(openedSession.projectPath) ?? t.unknown} · ${openedSession.branch ?? t.unknown}`
-    : openedFile
-      ? openedFile.project ?? t.unknown
-      : openedNote?.type ?? '';
+  const opened: OpenedPanel = { note: openedNote, file: openedFile, session: openedSession };
+  /** Null when no agent is open, which is what makes the subtitle skip the
+   *  session line rather than render it two thirds written. */
+  const agentLabel = source
+    ? source.sessions.mark?.label ?? source.sessions.displayName
+    : null;
+  const title = panelTitle(opened, t.unknown);
+  const subtitle = panelSubtitle(opened, agentLabel, t.unknown);
 
-  /**
-   * What to call one entry of the history, so back and forward can NAME where
-   * they lead. A button labelled only with an arrow makes you press it to find
-   * out where it goes, which is the thing being fixed.
-   *
-   * An entry whose target is gone (a note deleted, a session from an agent you
-   * switched away from) keeps its file name rather than vanishing: the step
-   * happened, and a blank label would read as a broken control.
-   */
-  const labelFor = (ref: PanelRef): string => {
-    if (ref.kind === 'note') {
-      const doc = current.docs.find(d => d.path === ref.file);
-      return doc?.name ?? baseName(ref.file) ?? ref.file;
-    }
-    if (ref.kind === 'file') return baseName(ref.file) ?? ref.file;
-    const session = current.sessions.find(x => x.path === ref.file);
-    return session
-      ? sessionLabel(session.title, session.humanTurns[0]?.text, 40).text || (baseName(ref.file) ?? ref.file)
-      : baseName(ref.file) ?? ref.file;
-  };
+  const labelFor = (ref: PanelRef): string => entryLabel(ref, current.docs, current.sessions);
 
   /**
    * "Edited here" against "changed after the agent" — a record against an
@@ -506,11 +251,9 @@ export default function App(): JSX.Element {
       saveSettings(next);
       return next;
     });
-    for (const [k] of [...seen.current.entries()]) {
-      if (k.endsWith(`|${path}`)) seen.current.delete(k);
-    }
+    dropCached(path);
     setEditing(false);
-  }, []);
+  }, [dropCached]);
 
   // Zoomed far out, the dashboard is a grey smear. Show what survives at that
   // size: how many sessions still moved, and whether two share a branch.
@@ -590,8 +333,8 @@ export default function App(): JSX.Element {
           nothing at all. */}
       <Drawer
         open={Boolean(openedSession ?? openedNote ?? openedFile)}
-        title={panelTitle}
-        subtitle={panelSubtitle}
+        title={title}
+        subtitle={subtitle}
         closeLabel={t.close}
         onClose={() => { setEditing(false); setHistory(EMPTY_HISTORY); }}
         backLabel={backLabel}

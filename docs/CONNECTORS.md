@@ -1,7 +1,7 @@
 # Writing a connector
 
-A connector teaches Ariadne to read one agent. It is a **JSON file** — never
-code — and that is the whole design.
+A connector teaches Ariadne to read one agent. It is a **JSON file**, never
+code, and that is the whole design.
 
 ## Why data and not code
 
@@ -22,7 +22,7 @@ pattern in a file a stranger shipped would hang the reader on someone else's
 machine.
 
 Because it is data, the app can state exactly what a connector will read
-*before* you point it anywhere — the consent list on the first screen is
+*before* you point it anywhere. The consent list on the first screen is
 computed from the file, not written by its author.
 
 ## The three files
@@ -73,7 +73,7 @@ invented mapping is not. The interpreter treats an absent path as absent.
 
   // Only if the transcripts are buried below the session directory.
   // A FIXED sub-path, never a crawl: one listing per session.
-  // `idFrom: "dir"` when no line carries a session id — the directory name is it.
+  // `idFrom: "dir"` when no line carries a session id: the directory name is it.
   "tree": { "subPath": ".logs", "idFrom": "dir" },
 
   "fields": {
@@ -86,7 +86,7 @@ invented mapping is not. The interpreter treats an absent path as absent.
   },
 
   // The conversation's own name, on whatever line kind carries it.
-  // The walk runs BACKWARDS, so the first hit is the most recent — a renamed
+  // The walk runs BACKWARDS, so the first hit is the most recent, so a renamed
   // conversation shows its new name.
   "title": { "where": { "type": "custom-title" }, "take": "customTitle" },
 
@@ -118,7 +118,7 @@ invented mapping is not. The interpreter treats an absent path as absent.
 1. **`action.where` tests array ENTRIES, not the line.** If the entries carry no
    `type`, use `"where": {}` and rely on `path`.
 2. **The walk runs backwards.** Mapping `title` to the first user message gives
-   you the *last* one. If the agent has no title, declare none — the interface
+   you the *last* one. If the agent has no title, declare none. The interface
    falls back to an excerpt of the first message, rendered dimmed so it is never
    mistaken for a real name.
 3. **The last line is often truncated.** The file is appended to while it is

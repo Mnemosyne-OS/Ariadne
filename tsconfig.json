@@ -23,5 +23,5 @@
   "include": ["src"],
   /* Tests are out of the app build on purpose: shipping must not depend on the
      test runner being installed. ESLint lints them via allowDefaultProject. */
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

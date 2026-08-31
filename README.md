@@ -12,13 +12,13 @@ on this machine.
 > [!WARNING]
 > **Ariadne is in beta, and it is not in the store yet.**
 >
-> Version 0.4.0 means what it says. You add it by hand, by pasting this repo's
+> Version 0.4.1 means what it says. You add it by hand, by pasting this repo's
 > URL into Mnemosyne (see [Installing it](#installing-it)). There is no catalog
 > entry, no review, and no signed listing behind it.
 >
 > What has actually been observed: it was built and driven against **212 real
 > transcripts** on the author's machine, Claude Code and Antigravity, on
-> **Windows**, and it carries **204 tests**.
+> **Windows**, and it carries **249 tests**.
 >
 > What nobody has watched yet: macOS, Linux, anyone else's folder layout, and
 > any agent other than those two. Transcript formats are undocumented and shift
@@ -209,22 +209,35 @@ transcript is.
 
 ```
 src/
-  lib/
-    connector.ts     the interpreter, applying a connector to raw files
-    shellWrites.ts   files a shell command writes (patterns live HERE, not in
-                     a connector: connectors are data a stranger can ship)
-    artifactRows.ts  every file the agents produced, as one browsable list
-    keep.ts          what one save writes, and which vaults it may target
-    walk.ts          finding an agent's files without crawling the disk
-    sessionNotes.ts  which notes belong to a session (two different claims)
-    summarise.ts     what goes into a summary prompt, and what it forbids
-    markdown.tsx     note rendering, in the shell's own note language
-    settings.ts      preferences, and the migration between their versions
-  connectors/        the declarations, data, one per agent
-  views/             the screens
-docs/CONNECTORS.md   how to write a connector
-dist/                the built cartridge, committed on purpose, see below
+  App.tsx                the shell: which agent is open, and what the panel shows
+  hooks/
+    useAgentScan.ts      the folder walk, its caches, and the poll timer
+    useTwinCandidates.ts probing a derived twin folder, and offering it
+  lib/                   pure modules, one test file each
+    artifactRows.ts      every file the agents produced, as one browsable list
+    writtenFiles.ts      a session's own files, in the order worth reading
+    sessionNotes.ts      which notes belong to a session (two different claims)
+    handEdits.ts         a recorded edit, against an inference from an mtime
+    keep.ts              what one save writes, and which vaults it may target
+    writable.ts          what the host will let a cartridge write back
+    summarise.ts         what goes into a summary prompt, and what it forbids
+    panelHistory.ts      back and forward, in a panel that links everywhere
+    panelLabels.ts       what the panel is called, and each step of its history
+    siblings.ts          deriving a twin's folder from one you designated
+    markdown.tsx         note rendering, in the shell's own note language
+    settings.ts          preferences, and the migration between their versions
+    sources.ts           the agents this build can read
+  views/                 the screens
+docs/CONNECTORS.md       how to write a connector
+dist/                    the built cartridge, committed on purpose, see below
 ```
+
+The reader itself is not in here. Parsing a transcript, applying a connector,
+walking a folder without crawling the disk, and recognising a file written by a
+shell command all live in `@mnemosyne_os/agent-transcripts`, shared with the
+transcript tools in Mnemosyne's MCP server so that the window and the command
+line can never disagree about what a session is. The shipped connectors live
+there too.
 
 ## Development
 
@@ -234,7 +247,8 @@ tarball and runs what is in `dist/`, so nothing is ever built on your machine.
 
 ```bash
 pnpm dev          # port 5212
-pnpm test         # 204 tests
+pnpm test         # 249 tests
+pnpm typecheck    # types the tests too, which the build's tsc does not
 pnpm lint
 pnpm build
 ```

@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.4.1 - 2026-08-31
+
+Housekeeping, after the first public release. Nothing changes on screen.
+
+### Fixed
+
+- **The README described a source layout that does not exist.** It listed
+  `connector.ts`, `shellWrites.ts` and `walk.ts` under `src/lib/`, and a
+  `src/connectors/` folder holding one file per agent. All four moved into
+  `@mnemosyne_os/agent-transcripts` when the MCP server started reading the same
+  transcripts, and nobody updated the map. It also claimed 250 tests when there
+  were 204.
+- **A `.test.tsx` file would have been run by nobody.** vitest collected
+  `src/**/*.test.ts` only, so a rendering test would have been silently absent
+  from a green suite.
+- **Nothing type-checked the tests.** The build's `tsc` excludes them on purpose,
+  so that shipping does not require vitest to be installed, and ESLint's rules
+  are not a type-checker. `pnpm typecheck` now covers everything.
+
+### Changed
+
+- **The note renderer has tests**, 24 of them, over blocks, fenced code, the
+  inline set and the `[[link]]` callback. It is a hand-written parser and the
+  only thing between a note on disk and what the panel shows, and it had none.
+  Nine mutations were applied to it to check the tests hold something: eight
+  turned the suite red, and the ninth is documented as uncatchable rather than
+  left looking like coverage.
+- **App.tsx went from 651 lines to 394.** Reading an agent's folder, its caches
+  and its poll timer are one hook now, and the panel's labels are a pure module
+  with their own tests. The moved code is unchanged apart from arguments
+  replacing closures.
+- **Forgetting an agent now clears its rows as well as its caches.** Three call
+  sites did those two things on consecutive lines, and one that did the first
+  and forgot the second would have painted an agent's old sessions under a
+  folder that no longer held them.
+
 ## 0.4.0 - 2026-08-29
 
 The version where the file list stopped lying about its own length, and where a
