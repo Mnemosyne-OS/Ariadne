@@ -9,14 +9,14 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MnemoCartridgeSDK, onHostConfig } from './sdk/mnemo-sdk';
-import { collisionReport, liveSessions } from '@mnemosyne_os/agent-transcripts';
+import { collisionReport, liveSessions, type SessionState } from '@mnemosyne_os/agent-transcripts';
 import { SOURCES, sourceById } from './lib/sources';
 import {
-  loadSettings, saveSettings, resetSettings, rememberSaved, rememberEdited, savedKey,
-  type SavedMark, type Settings,
+  loadSettings, saveSettings, resetSettings, rememberSaved, rememberEdited, rememberExported, savedKey,
+  type SavedMark, type ExportedMark, type Settings,
 } from './lib/settings';
 import { editMark, lastAgentTouch } from './lib/handEdits';
-import { buildArtifactRows } from './lib/artifactRows';
+import { buildArtifactRows, documentRows, notePathSet } from './lib/artifactRows';
 import {
   EMPTY_HISTORY, canGoBack, canGoForward, currentPanel, goBack, goForward, navigate, trail,
   type PanelRef,
@@ -24,9 +24,13 @@ import {
 import { panelTitle, panelSubtitle, entryLabel, type OpenedPanel } from './lib/panelLabels';
 import { useTwinCandidates } from './hooks/useTwinCandidates';
 import { useAgentScan, EMPTY } from './hooks/useAgentScan';
+import { useCockpit } from './hooks/useCockpit';
+import { useAgentPort } from './hooks/useAgentPort';
+import type { CardSource } from './lib/cockpitCards';
 import { renderMarkdown } from './lib/markdown';
 import { dictFor, type Dict } from './i18n';
 import Hub, { type SourceStatus } from './views/Hub';
+import SourceMark from './views/SourceMark';
 import Dashboard from './views/Dashboard';
 import NotesTab from './views/NotesTab';
 import Drawer from './views/Drawer';
@@ -55,6 +59,13 @@ export default function App(): JSX.Element {
   /** null = the hub. Otherwise the source being looked at. */
   const [openSourceId, setOpenSourceId] = useState<string | null>(null);
   const [tab, setTab] = useState<'runs' | 'yours'>('runs');
+  /**
+   * Set by the dashboard's document count: the files pane opens already
+   * filtered to markdown. A counter, not a boolean — pressing it twice must
+   * re-apply the filter even if the person turned it off in between, and a
+   * boolean that is already `true` changes nothing.
+   */
+  const [documentsRequest, setDocumentsRequest] = useState(0);
   // ONE panel for the whole app. A session and a note used to open in
   // different places, so where a thing appeared depended on what you clicked.
   // Identified by PATH. A buried agent names every transcript the same, and
@@ -170,6 +181,22 @@ export default function App(): JSX.Element {
     busy: data[s.id]?.busy ?? false,
   }));
 
+  // Every session of every harness, signed with its mark: the cockpit is asked
+  // about ALL of them (a pin outlives the source you happen to be looking at).
+  const cockpitRows = useMemo<CardSource[]>(() => SOURCES.flatMap(src =>
+    (data[src.id]?.sessions ?? []).map(session => ({
+      session,
+      mark: src.sessions.mark ? { label: src.sessions.mark.label, tint: src.sessions.mark.tint } : null,
+    }))), [data]);
+  // Who answers the agents right now — the one thing a transcript on disk
+  // cannot say. Read once, then while it keeps answering.
+  const agentPort = useAgentPort(sdk);
+  const cockpit = useCockpit(sdk, cockpitRows, { unknown: t.unknown, sidechain: t.sidechain, files: t.cardFiles, pinFailed: t.pinFailed });
+  const togglePin = useCallback((session: SessionState) => {
+    const row = cockpitRows.find(r => r.session === session);
+    if (row) cockpit.toggle(row);
+  }, [cockpitRows, cockpit]);
+
   const openNote = panel?.kind === 'note' ? panel.file : null;
   const openSession = panel?.kind === 'session' ? panel.file : null;
   const openFile = panel?.kind === 'file' ? panel.file : null;
@@ -192,12 +219,34 @@ export default function App(): JSX.Element {
     if (target) showNote(target.path);
   };
 
+  /**
+   * Every file the agents produced, built ONCE here.
+   *
+   * The dashboard's document count and the files pane's own chip must never be
+   * two numbers: they are the same list, deduplicated by path the same way, or
+   * the screen states two incompatible things about one folder. It was also
+   * being rebuilt for the drawer's single lookup below.
+   */
+  const artifacts = useMemo(
+    () => buildArtifactRows(current.sessions, settings),
+    [current.sessions, settings],
+  );
+  /**
+   * The DOCUMENTS: markdown written for a person, the agent's own notes taken
+   * out. Built once here so the tile's number, the tile's list and anything
+   * else that says "documents" are the same population — a count and a list
+   * that disagree is the screen contradicting itself.
+   */
+  const documents = useMemo(
+    () => documentRows(artifacts, notePathSet(current.docs)),
+    [artifacts, current.docs],
+  );
   const openedSession = current.sessions.find(x => x.path === openSession) ?? null;
   const openedNote = current.docs.find(d => d.path === openNote) ?? null;
   // The row carries its own provenance, so the drawer names the session a file
   // came from without a second lookup.
   const openedFile = openFile
-    ? buildArtifactRows(current.sessions, settings).find(r => r.path === openFile) ?? null
+    ? artifacts.find(r => r.path === openFile) ?? null
     : null;
   const opened: OpenedPanel = { note: openedNote, file: openedFile, session: openedSession };
   /** Null when no agent is open, which is what makes the subtitle skip the
@@ -240,6 +289,22 @@ export default function App(): JSX.Element {
   }, []);
 
   /**
+   * Record a conversation Ariadne wrote out, and open it.
+   *
+   * The document is a `.md` on disk, so it opens in the SAME drawer as any
+   * other file — rendered preview, and the "keep this" button that names its
+   * vault already works on it. Nothing new to look at, which is the point.
+   */
+  const noteExported = useCallback((sessionPath: string, mark: ExportedMark) => {
+    setSettings(prev => {
+      const next = rememberExported(prev, sessionPath, mark);
+      saveSettings(next);
+      return next;
+    });
+    showFile(mark.file);
+  }, [showFile]);
+
+  /**
    * Record a hand edit, and drop the cached parse of that file so the next
    * pass re-reads it. Without the second half, the panel would go on showing
    * the text from before the edit until the size or mtime happened to change
@@ -274,6 +339,10 @@ export default function App(): JSX.Element {
               ‹
             </button>
           )}
+          {/* The badge belongs beside the title too: the detail view printed the
+              agent's name with nothing to identify it, while every row below
+              carried its mark. `glyph` so the name is not said twice. */}
+          {source && <SourceMark connector={source.sessions} size="glyph" />}
           <div>
             <h1>{source ? source.sessions.displayName : t.title}</h1>
             <p className="sub">{source ? t.subtitle : t.hubSubtitle}</p>
@@ -313,9 +382,10 @@ export default function App(): JSX.Element {
         </>
       ) : tab === 'yours' && source.notes ? (
         <NotesTab
-          t={t} docs={current.docs} sessions={current.sessions} settings={settings}
+          t={t} docs={current.docs} sessions={current.sessions}
           openNote={openNote} onOpenNote={showNote}
           openFile={openFile} onOpenFile={showFile}
+          artifacts={artifacts} documentsRequest={documentsRequest}
         />
       ) : (
         <Dashboard
@@ -325,6 +395,15 @@ export default function App(): JSX.Element {
           stats={current.stats} folder={settings.folders[source.id]}
           openSession={openSession} onOpenSession={showSession}
           connector={source.sessions}
+          pinned={cockpit.pinned} onTogglePin={togglePin} onPinLive={cockpit.pinLive}
+          pinError={cockpit.error} pinOmitted={cockpit.omitted}
+          agentPort={agentPort}
+          documents={documents}
+          exported={settings.exported} onOpenFile={p => showFile(p)}
+          onBrowseDocuments={source.notes ? () => {
+            setTab('yours');
+            setDocumentsRequest(n => n + 1);
+          } : null}
         />
       )}
 
@@ -347,6 +426,8 @@ export default function App(): JSX.Element {
             t={t} lang={lang} sdk={sdk} settings={settings}
             session={openedSession} docs={current.docs}
             onOpenNote={showNote} onOpenFile={p => showFile(p)}
+            exported={settings.exported[savedKey(openedSession.path)]}
+            onExported={noteExported}
           />
         )}
         {panel?.kind === 'file' && openedFile && source && (
@@ -360,6 +441,7 @@ export default function App(): JSX.Element {
             }}
             saved={settings.saved[savedKey(openedFile.path)]}
             onSaved={noteSaved}
+            onOpenFile={p => showFile(p)}
             editMark={fileMark}
             editedAt={settings.edited[savedKey(openedFile.path)]?.at ?? null}
             editing={editing}

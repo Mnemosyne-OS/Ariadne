@@ -14,8 +14,12 @@ import type { Connector } from '@mnemosyne_os/agent-transcripts';
 
 interface Props {
   connector: Connector;
-  /** A source chip next to a heading, or a smaller inline one. */
-  size?: 'chip' | 'inline';
+  /**
+   * A source chip next to a heading, a smaller inline one, or `glyph` — the
+   * badge ALONE, for places that already print the agent's name themselves.
+   * Rendering the full mark there would say it twice.
+   */
+  size?: 'chip' | 'inline' | 'glyph';
 }
 
 export default function SourceMark({ connector, size = 'chip' }: Props): JSX.Element | null {
@@ -32,7 +36,7 @@ export default function SourceMark({ connector, size = 'chip' }: Props): JSX.Ele
       ) : (
         <span className="source-badge" style={{ borderColor: tint, color: tint }}>{mark.label}</span>
       )}
-      <span className="source-name">{connector.displayName}</span>
+      {size !== 'glyph' && <span className="source-name">{connector.displayName}</span>}
     </span>
   );
 }

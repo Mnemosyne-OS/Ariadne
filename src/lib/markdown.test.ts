@@ -47,9 +47,12 @@ describe('blocks', () => {
   });
 
   it('renders the three heading levels, and nothing deeper', () => {
-    expect(html('# one')).toBe('<div class="md-h1">one</div>');
-    expect(html('## two')).toBe('<div class="md-h2">two</div>');
-    expect(html('### three')).toBe('<div class="md-h3">three</div>');
+    // The id is what the outline scrolls to, from the shared `headingId`
+    // helper — an outline entry whose anchor is missing is a control that
+    // silently does nothing, so the attribute is pinned with the class.
+    expect(html('# one')).toBe('<div id="md-one" class="md-h1">one</div>');
+    expect(html('## two')).toBe('<div id="md-two" class="md-h2">two</div>');
+    expect(html('### three')).toBe('<div id="md-three" class="md-h3">three</div>');
     // Four hashes is not a heading in the host's grammar, so it is a paragraph.
     expect(html('#### four')).toBe('<div class="md-p">#### four</div>');
   });
@@ -189,7 +192,7 @@ describe('whole notes', () => {
 
   it('handles CRLF, which is what a note written on Windows arrives as', () => {
     expect(html('# t\r\n\r\n- a\r\n- b')).toBe(
-      '<div class="md-h1">t</div><div class="md-gap"></div>'
+      '<div id="md-t" class="md-h1">t</div><div class="md-gap"></div>'
       + '<ul class="md-list"><li>a</li><li>b</li></ul>');
   });
 

@@ -68,9 +68,19 @@ export default function Hub({ t, statuses, candidates, onOpen, onPick, onConnect
                   }}
                 >
                   <SourceMark connector={s.source.sessions} />
-                  <code className="hint-path">
-                    {found ? found.path : (s.source.sessions.folderHint ?? '')}
-                  </code>
+                  {/* Three states, because two of them are NOT the same absence.
+                      A derived twin shows its real path; an agent with a usual
+                      place shows the hint; an agent that HAS no usual place
+                      says so, rather than leaving a gap that reads as a missing
+                      value. OpenClaw is the third: its exports land wherever
+                      the human ran the command. */}
+                  {found ? (
+                    <code className="hint-path">{found.path}</code>
+                  ) : s.source.sessions.folderHint ? (
+                    <code className="hint-path">{s.source.sessions.folderHint}</code>
+                  ) : (
+                    <span className="hint-none">{t.hubNoUsualPlace}</span>
+                  )}
                   {found && <span className="found-tag">{t.hubFound}</span>}
                 </li>
               );

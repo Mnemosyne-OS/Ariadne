@@ -37,7 +37,9 @@ export default function CompactView({ t, statuses, collisions, zoom }: Props): J
     <div className="far" style={{ padding: px(10), gap: px(10) }}>
       {collisions > 0 && (
         <div className="far-alert" style={{ fontSize: px(13), padding: `${px(4)} ${px(8)}`, borderRadius: px(4) }}>
-          {collisions} × {t.collision}
+          {/* No "×": Dashboard prints "{n} {collision}" and this said
+              "1 × sessions are live", which reads as a multiplication. */}
+          {collisions} {t.collision}
         </div>
       )}
 
@@ -54,10 +56,27 @@ export default function CompactView({ t, statuses, collisions, zoom }: Props): J
               className={`far-card ${live > 0 ? 'on' : ''}`}
               style={{ padding: px(10), borderRadius: px(8), gap: px(2), borderWidth: px(1) }}
             >
-              <span
-                className="far-mark"
-                style={{ fontSize: px(12), letterSpacing: px(1), color: mark?.tint }}
-              >{mark?.label ?? s.source.sessions.displayName}</span>
+              {/* The real mark from this distance too, when the connector has
+                  one. A drawing survives shrinking better than two letters do,
+                  and it is what the near view already shows — the far view
+                  must not identify an agent differently from the near one.
+                  Falls back to the label, which is why a connector without a
+                  logo still names itself here. */}
+              {mark?.svg ? (
+                <svg
+                  className="far-mark-svg"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  style={{ width: px(18), height: px(18), fill: mark.tint }}
+                >
+                  <path d={mark.svg} />
+                </svg>
+              ) : (
+                <span
+                  className="far-mark"
+                  style={{ fontSize: px(12), letterSpacing: px(1), color: mark?.tint }}
+                >{mark?.label ?? s.source.sessions.displayName}</span>
+              )}
               <span className="far-live" style={{ fontSize: px(40), color: live > 0 ? mark?.tint : undefined }}>
                 {live}
               </span>

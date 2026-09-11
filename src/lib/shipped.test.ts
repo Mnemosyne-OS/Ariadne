@@ -142,6 +142,28 @@ describe('shipped connectors', () => {
     });
   }
 
+  it('OpenClaw ships NO folder hint, and that absence is deliberate', () => {
+    // A hint is HOME-RELATIVE: the host resolves it against the home directory
+    // to open the picker. Every other agent has a usual place under `~`.
+    // OpenClaw does not — an export lands wherever the human pointed
+    // `export-trajectory`. A hint here would aim the picker at
+    // `~/.openclaw/trajectory-exports`, where an export never goes: a
+    // suggestion towards a place the file will never be. It shipped with one
+    // for exactly as long as it took to look at the screen.
+    expect(sourceById('openclaw')?.sessions.folderHint).toBeUndefined();
+  });
+
+  it('every source without a hint has a phrase to show instead of a gap', () => {
+    // The hub renders three states, and two of them are not the same absence.
+    // Without this string a hintless agent would show an empty slot, which
+    // reads as a value that failed to load rather than one that cannot exist.
+    const hintless = SOURCES.filter(s => !s.sessions.folderHint);
+    expect(hintless.length).toBeGreaterThan(0);
+    for (const lang of Object.keys(STRINGS) as (keyof typeof STRINGS)[]) {
+      expect(STRINGS[lang].hubNoUsualPlace.trim()).not.toBe('');
+    }
+  });
+
   for (const { where, conn } of all.filter(c => c.conn.kind === 'document')) {
     describe(`${where} (document)`, () => {
       it('says where its documents live relative to a session directory', () => {

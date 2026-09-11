@@ -39,6 +39,17 @@ export const SOURCES: Source[] = [
     sessions: CONNECTORS['antigravity-ide'],
     notes: CONNECTORS['antigravity-ide-notes'],
   },
+  {
+    // ⚠️ The one source that does not fill on its own. OpenClaw 2 keeps its
+    // live sessions in SQLite, so there is no per-session file to watch; what
+    // this reads is the bundle a human exports with `openclaw sessions
+    // export-trajectory`. A folder with no export in it is empty because
+    // nothing was exported, not because reading failed.
+    //
+    // No `notes`: OpenClaw keeps no documents beside a session.
+    id: 'openclaw',
+    sessions: CONNECTORS['openclaw'],
+  },
 ];
 
 export function sourceById(id: string | null): Source | null {

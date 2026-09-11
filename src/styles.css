@@ -1,6 +1,25 @@
-/* Shell design tokens only — the host broadcasts them and the cartridge
-   follows the user's theme with no palette of its own. Fallbacks are the
-   dark defaults so the page is still legible if it opens outside the shell. */
+/* Shell design tokens only — the host broadcasts them (collectDesignTokens
+   pushes EVERY `--*` it finds, so --text-secondary is available here too) and
+   the cartridge follows the user's theme with no palette of its own. Fallbacks
+   are the dark defaults so the page is still legible outside the shell.
+
+   ── THREE levels of text, and only three (field, 2026-09-09) ───────────────
+   The complaint was « faut arrêter ce gris » and it had been made before. The
+   contrast was not really the fault: SIX different roles were all painted
+   --text-muted at 11-12px — section headings, band labels, counts, caveats,
+   the "weak" chips, the table's secondary columns. Everything secondary
+   receded by the same amount, so nothing stood out and the eye had no
+   structure to rest on.
+
+     --text-primary   the thing itself: titles, file names, a note's text
+     --text-secondary STRUCTURE and DATA: section headings, band labels, the
+                      project and branch columns. These are how you navigate;
+                      they are not asides.
+     --text-muted     genuine asides only: caveats, counts, "seen N ago".
+
+   🚨 A distinction is never carried by legibility. The "changed while it ran"
+   chips used to be dimmed AND dashed — two signals, one of which made them
+   hard to read. The dashes stay, the dimming is gone. */
 
 html, body, #root {
   margin: 0;
@@ -9,7 +28,7 @@ html, body, #root {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: var(--bg-void, #0a0a0c);
-  color: var(--text-primary, #e6e6e6);
+  color: var(--text-primary, #f5f0e8);
 }
 
 .wrap {
@@ -28,11 +47,14 @@ header {
 }
 
 h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.01em; }
-h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted, #8b8b93); font-weight: 500; }
+/* A section heading is how you navigate the panel, so it reads at the
+   structural level and carries some weight. Its COUNT stays an aside. */
+h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary, #dcd8d0); font-weight: 600; }
+h3 .muted { font-weight: 500; }
 h4 { margin: 0 0 4px; font-size: 12px; font-weight: 600; }
 
-.sub { margin: 4px 0 0; font-size: 13px; color: var(--text-muted, #8b8b93); }
-.muted { color: var(--text-muted, #8b8b93); }
+.sub { margin: 4px 0 0; font-size: 13px; color: var(--text-muted, #a7a7b0); }
+.muted { color: var(--text-muted, #a7a7b0); }
 
 .tabs { display: flex; gap: 4px; flex-shrink: 0; }
 .tabs button { background: transparent; border: 1px solid transparent; }
@@ -45,11 +67,11 @@ h4 { margin: 0 0 4px; font-size: 12px; font-weight: 600; }
   margin-bottom: 14px;
 }
 
-.bar .count { font-size: 12px; color: var(--text-muted, #8b8b93); font-variant-numeric: tabular-nums; margin-left: auto; }
+.bar .count { font-size: 12px; color: var(--text-muted, #a7a7b0); font-variant-numeric: tabular-nums; margin-left: auto; }
 
 button {
   background: var(--bg-panel, #16161a);
-  color: var(--text-primary, #e6e6e6);
+  color: var(--text-primary, #f5f0e8);
   border: 1px solid var(--border-subtle, #2a2a31);
   border-radius: 6px;
   padding: 7px 14px;
@@ -62,7 +84,7 @@ button:disabled { opacity: 0.5; cursor: default; }
 
 input[type='text'], input.search {
   background: var(--bg-panel, #16161a);
-  color: var(--text-primary, #e6e6e6);
+  color: var(--text-primary, #f5f0e8);
   border: 1px solid var(--border-subtle, #2a2a31);
   border-radius: 6px;
   padding: 7px 10px;
@@ -78,11 +100,11 @@ input[type='text'], input.search {
   max-width: 560px;
 }
 
-.intro > p { margin: 0 0 16px; font-size: 13px; color: var(--text-muted, #8b8b93); }
+.intro > p { margin: 0 0 16px; font-size: 13px; color: var(--text-muted, #a7a7b0); }
 
 .consent { border-top: 1px solid var(--border-subtle, #2a2a31); padding-top: 14px; }
 .consent strong { font-size: 13px; }
-.consent p { margin: 6px 0 8px; font-size: 12px; color: var(--text-muted, #8b8b93); }
+.consent p { margin: 6px 0 8px; font-size: 12px; color: var(--text-muted, #a7a7b0); }
 .consent ul { margin: 0; padding-left: 18px; }
 .consent li { font-size: 12px; margin: 2px 0; }
 
@@ -99,7 +121,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   font-size: 13px;
 }
 
-.warn span { color: var(--text-muted, #8b8b93); font-size: 12px; }
+.warn span { color: var(--text-muted, #a7a7b0); font-size: 12px; }
 .warn.err { border-color: var(--danger, #d16060); }
 .err { color: var(--danger, #d16060); }
 
@@ -111,7 +133,7 @@ th {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
   padding: 0 12px 8px 0;
   border-bottom: 1px solid var(--border-subtle, #2a2a31);
 }
@@ -130,17 +152,17 @@ tbody tr:hover td { background: var(--bg-panel, #16161a); }
 tr.open td { background: var(--bg-panel, #16161a); }
 
 .num { text-align: right; padding-right: 16px; font-variant-numeric: tabular-nums; }
-.ago { font-variant-numeric: tabular-nums; color: var(--text-muted, #8b8b93); }
-.proj { color: var(--text-primary, #e6e6e6); }
-.kind { color: var(--text-muted, #8b8b93); font-size: 12px; }
+.ago { font-variant-numeric: tabular-nums; color: var(--text-muted, #a7a7b0); }
+.proj { color: var(--text-primary, #f5f0e8); }
+.kind { color: var(--text-muted, #a7a7b0); font-size: 12px; }
 
 /* Recent activity is marked on the elapsed-time cell only. It says the row
    moved a moment ago, which is provable — never that the agent "is working". */
 tr.fresh .ago { color: var(--accent, #6f8cff); font-weight: 600; }
 
-.empty { font-size: 13px; color: var(--text-muted, #8b8b93); margin-top: 18px; max-width: 560px; }
+.empty { font-size: 13px; color: var(--text-muted, #a7a7b0); margin-top: 18px; max-width: 560px; }
 .empty p { margin: 0 0 6px; }
-.empty .hint { color: var(--text-primary, #e6e6e6); }
+.empty .hint { color: var(--text-primary, #f5f0e8); }
 .empty .path code { font-size: 12px; word-break: break-all; }
 
 /* ── detail panel ─────────────────────────────────────────────────────────── */
@@ -165,7 +187,7 @@ tr.fresh .ago { color: var(--accent, #6f8cff); font-weight: 600; }
   font-variant-numeric: tabular-nums;
   /* A token, never an opacity: alpha multiplies the token's own and drops the
      text under the contrast floor. */
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
 }
 /* The caveat under the notes band sits between its heading and its list, so it
    takes the heading's bottom margin rather than adding one of its own. */
@@ -173,7 +195,7 @@ tr.fresh .ago { color: var(--accent, #6f8cff); font-weight: 600; }
 
 .summary p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; }
 .tone { margin-top: 12px; border-left: 2px solid var(--accent, #6f8cff); padding-left: 12px; }
-.caveat { font-size: 11px; color: var(--text-muted, #8b8b93); font-style: italic; }
+.caveat { font-size: 11px; color: var(--text-muted, #a7a7b0); font-style: italic; }
 
 /* ── notes ────────────────────────────────────────────────────────────────── */
 
@@ -197,14 +219,14 @@ tr.fresh .ago { color: var(--accent, #6f8cff); font-weight: 600; }
   border: 1px solid var(--border-subtle, #2a2a31);
   border-radius: 4px;
   padding: 1px 6px;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
 }
 
 .note-desc {
   margin: 4px 0 0;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--text-primary, #e6e6e6);
+  color: var(--text-primary, #f5f0e8);
 }
 
 .body {
@@ -234,7 +256,7 @@ tr.fresh .ago { color: var(--accent, #6f8cff); font-weight: 600; }
 .settings .row.sub-row { padding-left: 28px; }
 .settings .row.disabled { opacity: 0.5; cursor: default; }
 .settings .row strong { display: block; font-size: 13px; font-weight: 500; }
-.settings .row em { display: block; margin-top: 3px; font-size: 12px; font-style: normal; color: var(--text-muted, #8b8b93); line-height: 1.45; }
+.settings .row em { display: block; margin-top: 3px; font-size: 12px; font-style: normal; color: var(--text-muted, #a7a7b0); line-height: 1.45; }
 .settings .field input { display: block; margin-top: 6px; }
 .settings input[type='checkbox'] { margin-top: 3px; accent-color: var(--accent, #6f8cff); }
 
@@ -266,9 +288,12 @@ tr.fresh .ago { color: var(--accent, #6f8cff); font-weight: 600; }
 
 .far-card.on { border-color: var(--accent, #6f8cff); }
 .far-mark { font-weight: 700; text-transform: uppercase; }
+/* Occupies the same slot as the text label it replaces, so a card with a logo
+   and one without still line up in the grid. */
+.far-mark-svg { display: block; }
 .far-live { font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
-.far-cap { text-transform: uppercase; color: var(--text-muted, #8b8b93); }
-.far-total { color: var(--text-muted, #8b8b93); }
+.far-cap { text-transform: uppercase; color: var(--text-muted, #a7a7b0); }
+.far-total { color: var(--text-muted, #a7a7b0); }
 
 .far-alert {
   border: 1px solid var(--accent, #6f8cff);
@@ -284,7 +309,7 @@ h2 {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
 }
 
 .gear {
@@ -322,11 +347,67 @@ h2 {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
 }
 
 .stat.on { border-color: var(--accent, #6f8cff); }
 .stat.on b { color: var(--accent, #6f8cff); }
+
+/* A stat that IS a control. It inherits the tile so the row stays one row,
+   and only announces itself on hover: four identical tiles of which one is
+   pressable has to say which, and a permanently highlighted one would read as
+   a warning. `text-align` and `font` are reset because a <button> brings its
+   own, which centred the number and shrank the label. */
+.stat.act {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.stat.act:hover,
+.stat.act:focus-visible {
+  border-color: var(--accent, #6f8cff);
+}
+.stat.act:hover b,
+.stat.act:focus-visible b {
+  color: var(--accent, #6f8cff);
+}
+
+/* The conversation-document cell. Narrow and quiet: it is present on a few
+   rows out of many, so it must not widen the table for the rest. */
+td.doc { width: 26px; text-align: center; }
+.docbtn {
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.docbtn:hover, .docbtn:focus-visible { opacity: 1; }
+
+/* The export block in the session drawer. Separated from the summary above by
+   a rule, because one of them spends tokens and the other does not. */
+.conversation-doc {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle, #2a2a31);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.conversation-doc .link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--accent, #6f8cff);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.conversation-doc .link:hover { text-decoration: underline; }
 
 .block { margin-bottom: 22px; }
 .block > h2 { margin-bottom: 8px; }
@@ -339,17 +420,18 @@ h2 {
 }
 
 .block-head .search { margin-left: auto; }
-.block-head .count { font-size: 12px; color: var(--text-muted, #8b8b93); font-variant-numeric: tabular-nums; }
+.block-head .count { font-size: 12px; color: var(--text-muted, #a7a7b0); font-variant-numeric: tabular-nums; }
 
 .block table td:first-child { width: 64px; }
-.dim { color: var(--text-muted, #8b8b93); }
+/* The project and branch columns: data you read, not an aside. */
+.dim { color: var(--text-secondary, #dcd8d0); }
 
 .settings .row.last { border-bottom: none; }
 .settings .folder {
   display: block;
   margin: 4px 0 8px;
   font-size: 12px;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
   word-break: break-all;
 }
 
@@ -361,7 +443,7 @@ h2 {
 
 .head-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .tabs.small button { padding: 6px 12px; font-size: 12px; }
-.tabs.small .count { margin-left: 6px; color: var(--text-muted, #8b8b93); font-variant-numeric: tabular-nums; }
+.tabs.small .count { margin-left: 6px; color: var(--text-muted, #a7a7b0); font-variant-numeric: tabular-nums; }
 
 /* ── note body, in the shell's note language (see lib/markdown) ───────────── */
 
@@ -379,7 +461,7 @@ h2 {
   margin: 8px 0;
   padding: 4px 0 4px 12px;
   border-left: 2px solid var(--border-subtle, #2a2a31);
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
 }
 
 .md-pre {
@@ -466,18 +548,22 @@ h2 {
 .what {
   max-width: none;
   width: 100%;
-  color: var(--text-primary, #e6e6e6);
+  color: var(--text-primary, #f5f0e8);
 }
 
 /* An excerpt of the first message stands in when the harness never named the
    conversation. Dimmed and italic so it never reads as a real title. */
-.excerpt { color: var(--text-muted, #8b8b93); font-style: italic; }
+.excerpt { color: var(--text-muted, #a7a7b0); font-style: italic; }
 
 .block table td:nth-child(2) { padding-right: 20px; }
 .detail > header .dim { font-size: 12px; margin-left: 10px; }
 
 /* Notes reachable from a session's detail. */
+/* A band label names a group of files: structure, not an aside. It wins over
+   a `.muted` sitting on the same element — the markup asks for quiet, and the
+   answer is "quieter than the file names, louder than a caveat". */
 .small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin: 10px 0 4px; }
+.small, .muted.small { color: var(--text-secondary, #dcd8d0); font-weight: 600; }
 
 .note-links { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -491,10 +577,13 @@ h2 {
 
 .note-links li:hover { border-color: var(--accent, #6f8cff); }
 
-/* The circumstantial group reads quieter than the proven one: the difference
-   between "this session wrote it" and "it changed while this session ran" has
-   to be visible before the caveat is read. */
-.note-links.weak li { border-style: dashed; color: var(--text-muted, #8b8b93); }
+/* The circumstantial group reads differently from the proven one: the
+   difference between "this session wrote it" and "it changed while this
+   session ran" has to be visible before the caveat is read.
+   🚨 Carried by the DASHES alone. It used to be dashes AND a dimmer colour,
+   and the colour is what made a real, clickable list of notes unreadable —
+   a distinction must never be paid for in legibility. */
+.note-links.weak li { border-style: dashed; }
 
 /* ── the runs table never scrolls sideways ────────────────────────────────── */
 
@@ -507,7 +596,7 @@ table.runs td:nth-child(4) { width: 120px; }
 table.runs td:nth-child(5) { width: 44px; }
 table.runs td:nth-child(6) { width: 82px; }
 table.runs td { max-width: 0; }          /* lets ellipsis apply inside fixed layout */
-table.runs .what { color: var(--text-primary, #e6e6e6); }
+table.runs .what { color: var(--text-primary, #f5f0e8); }
 
 /* A wider drawer, and room to read: this is where notes and summaries are
    actually consumed, so it gets the space rather than the list behind it. */
@@ -524,6 +613,10 @@ table.runs .what { color: var(--text-primary, #e6e6e6); }
 .source-mark { display: inline-flex; align-items: center; gap: 6px; }
 .source-mark svg { width: 15px; height: 15px; }
 .source-mark.inline .source-name { display: none; }
+/* Beside the page title, which already prints the agent's name. Sized to the
+   heading rather than to a row, so it reads as part of the title. */
+.source-mark.glyph svg { width: 26px; height: 26px; }
+.source-mark.glyph .source-badge { font-size: 13px; padding: 3px 7px; }
 
 .source-badge {
   font-size: 10px;
@@ -534,7 +627,7 @@ table.runs .what { color: var(--text-primary, #e6e6e6); }
   padding: 1px 5px;
 }
 
-.source-name { font-size: 11px; color: var(--text-muted, #8b8b93); }
+.source-name { font-size: 11px; color: var(--text-muted, #a7a7b0); }
 .block-head h2 { margin-right: 0; }
 
 /* ── hub : one card per agent ─────────────────────────────────────────────── */
@@ -571,11 +664,11 @@ table.runs .what { color: var(--text-primary, #e6e6e6); }
 
 .agent-card.live { border-color: var(--accent, #6f8cff); }
 
-.agent-head .source-name { font-size: 13px; color: var(--text-primary, #e6e6e6); }
+.agent-head .source-name { font-size: 13px; color: var(--text-primary, #f5f0e8); }
 
 .agent-nums { display: flex; gap: 14px; flex-wrap: wrap; }
-.agent-nums span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted, #8b8b93); }
-.agent-nums b { display: block; font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--text-primary, #e6e6e6); text-transform: none; letter-spacing: 0; }
+.agent-nums span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted, #a7a7b0); }
+.agent-nums b { display: block; font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--text-primary, #f5f0e8); text-transform: none; letter-spacing: 0; }
 .agent-nums .on b { color: var(--accent, #6f8cff); }
 
 .agent-state { margin: 0; font-size: 12px; }
@@ -590,9 +683,9 @@ table.runs .what { color: var(--text-primary, #e6e6e6); }
 }
 
 .agent-card.add:hover { border-color: var(--accent, #6f8cff); border-style: solid; }
-.agent-card.add .plus { font-size: 34px; line-height: 1; color: var(--text-muted, #8b8b93); }
+.agent-card.add .plus { font-size: 34px; line-height: 1; color: var(--text-muted, #a7a7b0); }
 .agent-card.add:hover .plus { color: var(--accent, #6f8cff); }
-.agent-card.add .agent-state { color: var(--text-muted, #8b8b93); }
+.agent-card.add .agent-state { color: var(--text-muted, #a7a7b0); }
 
 .chooser { max-width: 620px; }
 .chooser .bar h2 { margin-right: auto; }
@@ -612,11 +705,19 @@ table.runs .what { color: var(--text-primary, #e6e6e6); }
 }
 
 .agent-choices li:hover { border-color: var(--accent, #6f8cff); }
-.agent-choices .source-name { font-size: 14px; color: var(--text-primary, #e6e6e6); }
+.agent-choices .source-name { font-size: 14px; color: var(--text-primary, #f5f0e8); }
 
 /* The folder the picker will open at, shown BEFORE the click: the person sees
    where this is about to look rather than discovering it in a dialog. */
-.hint-path { margin-left: auto; font-size: 11px; color: var(--text-muted, #8b8b93); }
+.hint-path { margin-left: auto; font-size: 11px; color: var(--text-muted, #a7a7b0); }
+/* Sits where a path would, but is prose rather than a location: not monospace,
+   and italic, so it is never mistaken for a folder you could copy. */
+.hint-none {
+  margin-left: auto;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted, #a7a7b0);
+}
 
 /* A twin derived from a folder already designated. Marked, because "we found
    this for you" and "you chose this" must not look the same. */
@@ -646,13 +747,13 @@ table.runs .what { color: var(--text-primary, #e6e6e6); }
   font-size: 12px;
   background: transparent;
   border-color: transparent;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
 }
 
 .filters button.on {
   background: var(--bg-panel, #16161a);
   border-color: var(--border-subtle, #2a2a31);
-  color: var(--text-primary, #e6e6e6);
+  color: var(--text-primary, #f5f0e8);
 }
 
 .filters button.spaced { margin-left: auto; }
@@ -663,7 +764,7 @@ table.runs .what { color: var(--text-primary, #e6e6e6); }
 .more {
   margin-top: 12px;
   width: 100%;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
   font-size: 12px;
 }
 
@@ -693,7 +794,7 @@ table.files-table code { font-size: 12px; }
 .tag.weak { border-style: dashed; }
 
 .file-path { margin: 0; }
-.file-path code { font-size: 11px; color: var(--text-muted, #8b8b93); word-break: break-all; }
+.file-path code { font-size: 11px; color: var(--text-muted, #a7a7b0); word-break: break-all; }
 
 .file-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 /* The heading takes the slack, so the actions stay grouped on the right
@@ -705,7 +806,7 @@ button.link {
   border: none;
   padding: 0;
   font-size: 11px;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
 }
 
 button.link:hover { color: var(--accent, #6f8cff); }
@@ -747,7 +848,7 @@ button.link:hover { color: var(--accent, #6f8cff); }
   background: var(--bg-surface, #131318);
   border-left: 2px solid var(--border-subtle, #2a2a31);
   border-radius: 4px;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 10.5px;
   line-height: 1.5;
@@ -763,7 +864,7 @@ button.link:hover { color: var(--accent, #6f8cff); }
   flex: 1;
   min-width: 0;
   background: var(--bg-panel, #16161a);
-  color: var(--text-primary, #e6e6e6);
+  color: var(--text-primary, #f5f0e8);
   border: 1px solid var(--border-subtle, #2a2a31);
   border-radius: 6px;
   padding: 7px 10px;
@@ -786,11 +887,11 @@ button.primary { border-color: var(--accent, #6f8cff); color: var(--accent, #6f8
   line-height: 1;
   background: transparent;
   border-color: transparent;
-  color: var(--text-muted, #8b8b93);
+  color: var(--text-muted, #a7a7b0);
 }
 
 .drawer-nav .nav:hover:not(:disabled) {
-  color: var(--text-primary, #e6e6e6);
+  color: var(--text-primary, #f5f0e8);
   border-color: var(--border-subtle, #2a2a31);
 }
 
@@ -814,7 +915,7 @@ button.primary { border-color: var(--accent, #6f8cff); color: var(--accent, #6f8
   resize: vertical;
   padding: 12px;
   background: var(--bg-void, #0a0a0c);
-  color: var(--text-primary, #e6e6e6);
+  color: var(--text-primary, #f5f0e8);
   border: 1px solid var(--accent, #6f8cff);
   border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -830,3 +931,155 @@ button.primary { border-color: var(--accent, #6f8cff); color: var(--accent, #6f8
    solid for what we wrote, dashed for what we merely deduce from an mtime. */
 .tag.edit-here { color: var(--accent, #6f8cff); border-color: var(--accent, #6f8cff); }
 .tag.edit-after { cursor: help; }
+
+/* ── cockpit (doc 110) ─────────────────────────────────────────────────────
+   The pin column and the "pin the live ones" button. A pressed pin is drawn
+   in the accent, an unpressed one stays quiet until the row is hovered: a
+   list of twelve bright pins would be the decoration, not the sessions. */
+.stat.pins { flex-direction: row; align-items: center; gap: 10px; margin-left: auto; }
+.pin-live {
+  font: inherit; font-size: 12px; cursor: pointer;
+  padding: 4px 10px; border-radius: 6px;
+  color: var(--text-primary, #f5f0e8);
+  background: transparent;
+  border: 1px solid var(--border-subtle, #2a2a31);
+}
+.pin-live:hover { border-color: var(--accent, #6f8cff); color: var(--accent, #6f8cff); }
+.pinned-count { font-size: 12px; color: var(--text-muted, #a7a7b0); }
+table.runs td:nth-child(7) { width: 30px; text-align: right; }
+.pinbtn {
+  font: inherit; font-size: 12px; line-height: 1; cursor: pointer;
+  padding: 2px 4px; border-radius: 4px;
+  background: transparent; border: 1px solid transparent;
+  opacity: 0; transition: opacity 120ms ease;
+}
+table.runs tr:hover .pinbtn, .pinbtn.on, .pinbtn:focus-visible { opacity: 1; }
+.pinbtn.on { border-color: var(--accent, #6f8cff); }
+
+/* ── The document reader's tools (views/FileReaderTools) ─────────────────── */
+
+.reader-tools {
+  margin: 8px 0 14px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-subtle, #2a2a31);
+  border-bottom: 1px solid var(--border-subtle, #2a2a31);
+}
+
+/* What the document is. Tabular numbers so the row does not jitter as the
+   figures change between files. */
+.reader-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--text-muted, #a7a7b0);
+  font-variant-numeric: tabular-nums;
+}
+
+.reader-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+/* The outline. Indented by level, and scrollable on its own: a 90-heading
+   document must not push the text it is an index of off the screen. */
+.reader-outline {
+  margin: 8px 0 0;
+  padding: 0 0 0 4px;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+.reader-outline li { margin: 2px 0; }
+.reader-outline li.lvl2 { padding-left: 14px; }
+.reader-outline li.lvl3 { padding-left: 28px; }
+.reader-outline .link { text-align: left; }
+
+/* The folder, listed in place — never handed to the OS file manager. */
+.reader-folder {
+  margin-top: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.reader-folder ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+.reader-folder li { margin: 2px 0; }
+.reader-folder .link { text-align: left; }
+
+/* The reading surface is the Notes app, so its link leads the row. Same shape
+   as .link, just not muted: three identical links of which one is the point
+   makes the person hunt. */
+.primary-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: var(--accent, #6f8cff);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.primary-link:hover { text-decoration: underline; }
+
+/* ── The documents tile (views/Dashboard) ─────────────────────────────────── */
+
+/* The tile stops being one big number and becomes a number plus what it
+   counts. It grows taller than its siblings, so the row aligns to the top
+   rather than stretching three tiles to match this one. */
+.stats { align-items: flex-start; }
+
+.stat.docs { display: flex; flex-direction: column; gap: 8px; }
+
+.docs-count {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: block;
+}
+.docs-count:hover b, .docs-count:focus-visible b { color: var(--accent, #6f8cff); }
+div.docs-count { cursor: default; }
+
+/* The names. Readable — they are the point of the tile, not a caption. */
+.docs-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.docs-recent li { min-width: 0; }
+.docs-recent button {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  color: var(--text-secondary, #dcd8d0);
+  cursor: pointer;
+  /* One line each: a wrapped file name doubles the tile's height for nothing,
+     and the full path is on the title attribute. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.docs-recent button:hover, .docs-recent button:focus-visible {
+  color: var(--accent, #6f8cff);
+  text-decoration: underline;
+}

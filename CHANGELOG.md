@@ -1,5 +1,131 @@
 # Changelog
 
+## 0.6.0 - 2026-09-11
+
+The documents your agents write are the subject of this one: found from the
+dashboard, read inside Mnemosyne with a reader's tools, or handed to the Notes
+app. One permission more than 0.5.0 — `agent:export` — which is why the minor
+moves: the app will ask you again.
+
+### Added
+
+- **A way into the documents the agents wrote**, from the dashboard rather than
+  from a session you have to find first. The tile carries the four most recent
+  names under the count, each opening that document; the number opens the full
+  list. No placeholder rows, and no list at all where the agents wrote none — a
+  tile of empty slots reads as a broken tile.
+- **A document drawer with a reader's tools.** What it is: words, characters,
+  reading time. What is in it: the headings, indented by level, each scrolling
+  the body. What is beside it: the folder, **listed here**, so every file in it
+  opens in this same drawer instead of being handed to Explorer. Opening in the
+  OS stays as a small secondary link — taking away a working way out because a
+  better one exists is how someone ends up stuck when the better one does not
+  cover their case.
+  - The 200 wpm is **copied from Mnemosyne's own Notes inspector**, not chosen
+    here: one markdown file must not get two reading times depending on which
+    surface opened it.
+  - Absent rather than invented: an empty document has no reading time and no
+    bar, a document without headings gets no outline, and a folder that cannot
+    be read says so instead of being drawn as an empty one.
+- **Open a document in Mnemosyne's Notes app** — the surface that already is a
+  reader, rather than a third one rebuilt here. A file Notes cannot render is
+  refused by name and gets no button: handed a `.pdf`, the Notes app passes the
+  file to the operating system's default application, which is the one thing
+  this exists to keep out of the way.
+- **Write a session's conversation as a document.** The `conversation.md` that
+  Mnemosyne's cockpit card can produce was something Ariadne could neither find
+  nor ask for, so a list of them was empty on almost every session. A button in
+  the session drawer now asks for one, and it opens in the same drawer as any
+  other file — rendered, with the existing "keep this" button working on it.
+  - New permission **`agent:export`**, deliberately not folded into
+    `dialog:open`: that one is a READ, and letting a read grant a write is how
+    a permission stops meaning what its sentence says. It writes one file, in
+    the folder of a transcript that already exists, and nothing leaves your
+    machine.
+  - Dashboard rows carry a 📄 only when there is a document behind it. An icon
+    on every row, most of them opening nothing, is a column of noise.
+- **Real marks for the agents**, with how each one got here written down in
+  NOTICE.md rather than smoothed over: OpenClaw's is the publisher's own file,
+  Antigravity's is traced from its artwork, and Claude Code's is drawn and says
+  so — an approximation of a trademark, labelled as one. A shape recalled from
+  memory and presented without that label is the thing avoided.
+
+### Changed
+
+- **Three levels of text instead of one grey.** Six different roles — section
+  headings, band labels, counts, caveats, chips, secondary columns — were all
+  painted the same muted colour at 11-12px, so everything secondary receded by
+  exactly the same amount and the eye had no structure to rest on. Titles and
+  file names, then structure and data, then genuine asides: three, and only
+  three. The "changed while it ran" chips keep their dashes and lose the
+  dimming — a distinction is not worth paying for in legibility.
+- **The tile lists documents, not every markdown an agent touched.** A working
+  session writes half a dozen memory notes into the folder its own connector
+  reads, so ranked by recency the newest markdown are always the machine's own
+  notes and the document you asked for is never on screen. Ariadne already
+  recorded the difference; the tile now uses it, and its tooltip says what is
+  counted.
+
+### Fixed
+
+- **OpenClaw is registered where the screen actually reads**, and the hub says
+  it has no usual place on disk rather than implying one.
+- **An agent is identified from far away the way it is up close** — same badge,
+  beside the title and not only in the rows.
+
+## 0.5.0 - 2026-09-06
+
+Sessions can now sit on the board, and the cartridge says who is answering the
+agents. Two permissions more than 0.4.1, which is why the minor moves: the app
+will ask you again.
+
+### Added
+
+- **OpenClaw sessions can be read** — with one honest limit stated up front.
+  OpenClaw 2 moved its live sessions into SQLite, so nothing on disk fills by
+  itself; what this reads is the bundle a human exports with `openclaw sessions
+  export-trajectory`. Tool writes and shell redirections both come through, so
+  a session that wrote every one of its files through the shell is not reported
+  as having written none. The export redacts the workspace root, so those rows
+  carry **no project path and no branch** rather than a placeholder that looks
+  like a directory. Measured against a real session, not the vendor's docs.
+- **Pin a session to the canvas.** A row's pin puts a small card on Mnemosyne's
+  board — name, what the agent said it was doing, where it runs, files written,
+  time since it was last seen — and it stays there while you work elsewhere.
+  *Pin the live sessions* places all of them at once, a counter says how many
+  are on the board, and cards past the host's per-app ceiling are **counted on
+  screen** rather than silently dropped. Permission: `cockpit:pin`. Nothing is
+  pinned without a press, and a card you remove stays removed.
+- **A line saying whether those agents are reaching THIS app.** When Mnemosyne
+  is closed, an agent's MCP starts a headless backend, and that backend can
+  still hold the SDK port when the app comes back: the app then looks perfectly
+  healthy while every memory call on the machine is answered by another process.
+  The line says *reaching this app*, *another process answers*, or *not readable
+  from here*. Permission: `metrics:read` — a count and a port, never a name and
+  never memory.
+
+### Changed
+
+- **One card per session, not two.** A Claude Code session publishes its own
+  card through a hook; pinning the same session here used to add a second one
+  beside it, same work, two ids, disagreeing on how fresh they were. Both cards
+  now declare what they are ABOUT, and the host draws one — the session's own
+  when it exists, because that is the one whose state is declared rather than
+  read from a file, and the only one that can be replied to. Ariadne's card is
+  what every agent without such a hook gets.
+
+### Fixed
+
+- **"20 files" appeared next to "6 fichiers" on the same board.** The host
+  localises what it draws; this cartridge built that line with the count and the
+  English word hardcoded, so its cards spoke English on a French screen. EN/FR/ES,
+  like everything else here.
+
+- **A refusal no longer asks again ten seconds later.** The host re-asks for
+  permission after a deny, so a poll that retried would raise the native dialog
+  forever, on nobody's gesture. The port line reads once, keeps reading while it
+  is answered, and stops for good the first time it is refused.
+
 ## 0.4.1 - 2026-08-31
 
 Housekeeping, after the first public release. Nothing changes on screen.

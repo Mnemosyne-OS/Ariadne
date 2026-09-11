@@ -13,11 +13,10 @@
  * a time, with what remains stated on the button, and a warning when a session
  * upstream stopped short of its own files.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { SessionState, DocState } from '@mnemosyne_os/agent-transcripts';
-import type { Settings } from '../lib/settings';
 import {
-  buildArtifactRows, countCapped, countMarkdown, filterArtifactRows, type OriginFilter,
+  countCapped, countMarkdown, filterArtifactRows, type ArtifactRow, type OriginFilter,
 } from '../lib/artifactRows';
 import { ago, shortPath } from '../lib/format';
 import { fill, type Dict } from '../i18n';
@@ -30,7 +29,6 @@ interface Props {
   t: Dict;
   docs: DocState[];
   sessions: SessionState[];
-  settings: Settings;
   /** The open note's PATH. Not its file name: `task.md` repeats across
    *  sessions, so a name identifies nothing. */
   openNote: string | null;
@@ -39,10 +37,17 @@ interface Props {
    *  as notes and sessions — one place to look. */
   openFile: string | null;
   onOpenFile: (path: string | null) => void;
+  /** Every file the agents produced, built once by App so the dashboard's
+   *  count and this pane's chip can never be two different numbers. */
+  artifacts: ArtifactRow[];
+  /** Bumped when the dashboard's document count is pressed: open the files
+   *  pane, filtered to markdown. A counter and not a flag, so pressing it
+   *  again re-applies the filter after the person has turned it off. */
+  documentsRequest: number;
 }
 
 export default function NotesTab(props: Props): JSX.Element {
-  const { t, docs, sessions, settings, openNote, onOpenNote, openFile, onOpenFile } = props;
+  const { t, docs, sessions, openNote, onOpenNote, openFile, onOpenFile, artifacts, documentsRequest } = props;
   const [query, setQuery] = useState('');
   const [pane, setPane] = useState<'notes' | 'files'>('notes');
   const [origin, setOrigin] = useState<OriginFilter>('all');
@@ -50,8 +55,16 @@ export default function NotesTab(props: Props): JSX.Element {
   const [mdOnly, setMdOnly] = useState(false);
   const [page, setPage] = useState(1);
 
-  const artifacts = useMemo(() => buildArtifactRows(sessions, settings), [sessions, settings]);
   const capped = useMemo(() => countCapped(sessions), [sessions]);
+
+  // 🚨 Only when the dashboard actually asked. Running on mount unconditionally
+  // would force the files pane on someone who opened this tab for their notes.
+  useEffect(() => {
+    if (documentsRequest === 0) return;
+    setPane('files');
+    setMdOnly(true);
+    setPage(1);
+  }, [documentsRequest]);
 
   const q = query.trim().toLowerCase();
 

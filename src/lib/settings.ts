@@ -40,6 +40,34 @@ export interface Settings {
    * a record. Same trimming as `saved`, same reason.
    */
   edited: Record<string, EditedMark>;
+  /**
+   * Conversations Ariadne wrote out as documents, keyed by the SESSION's path
+   * the same way.
+   *
+   * 🚨 What Ariadne itself did, never a claim about the disk. The file may have
+   * been moved or deleted since, so a mark means "I wrote one here", and the
+   * screen that shows it must survive opening a file that is gone — which the
+   * drawer already does, because a refusal is never rendered as an empty file.
+   *
+   * ⛔ Not merged into `saved` or `edited`: those are about files an AGENT
+   * produced and what became of them. This one is about a document Ariadne
+   * produced, from a transcript. Same shape, different claim.
+   */
+  exported: Record<string, ExportedMark>;
+}
+
+export interface ExportedMark {
+  /** Where the document was written. */
+  file: string;
+  /** ISO timestamp of the export. */
+  at: string;
+  /** What the host reported writing. Kept so the row can say how much of the
+   *  conversation is in there without opening it. */
+  turns: number;
+  /** Tool results, thinking and images left out, as the host counted them.
+   *  The header of the document says the same thing; this is so the LIST can
+   *  say it too, rather than a document that reads as complete. */
+  skipped: number;
 }
 
 export interface EditedMark {
@@ -74,6 +102,7 @@ export const DEFAULTS: Settings = {
   lastVault: '',
   saved: {},
   edited: {},
+  exported: {},
 };
 
 /** One key for one file, whatever separators and case the OS handed back. */
@@ -113,6 +142,15 @@ export function rememberSaved(s: Settings, path: string, mark: SavedMark): Setti
  * It is what makes "edited here" a record rather than the weaker "changed
  * after the last agent action" the mtime alone can support (see handEdits).
  */
+/**
+ * Records a conversation Ariadne just wrote. Trimmed like the others: the host
+ * mirror caps a cartridge's store at 256 KB (doc 73), and a silently dropped
+ * write would take the settings with it.
+ */
+export function rememberExported(s: Settings, sessionPath: string, mark: ExportedMark): Settings {
+  return { ...s, exported: trimMarks({ ...s.exported, [savedKey(sessionPath)]: mark }) };
+}
+
 export function rememberEdited(s: Settings, path: string, mark: EditedMark): Settings {
   return { ...s, edited: trimMarks({ ...s.edited, [savedKey(path)]: mark }) };
 }

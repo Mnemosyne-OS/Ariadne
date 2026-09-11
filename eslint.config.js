@@ -71,7 +71,7 @@ export default tseslint.config(
 
   // Tests reach into shapes on purpose to reproduce real bad data.
   {
-    files: ['src/**/*.test.ts'],
+    files: ['src/**/*.test.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

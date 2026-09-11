@@ -12,6 +12,7 @@
  * grammar, not a shared implementation, and there is no test binding the two.
  */
 import type { JSX } from 'react';
+import { headingId } from './reader';
 
 /** Inline spans, in the host's precedence order. */
 const INLINE = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`([^`]+)`)|(\[\[([^\]]+)\]\])|(<u>(.+?)<\/u>)|(~~(.+?)~~)|(==([^=]+)==)/g;
@@ -53,6 +54,14 @@ const HEADING_CLASS = ['md-h1', 'md-h2', 'md-h3'];
 export function renderMarkdown(text: string, onLink?: (name: string) => void): JSX.Element[] {
   const lines = text.split(/\r?\n/);
   const blocks: JSX.Element[] = [];
+  /**
+   * 🚨 Headings carry an id so the outline can reach them, and it comes from
+   * the SAME helper the outline uses — two implementations would drift the
+   * first time a heading held punctuation, and the outline would scroll to
+   * nothing. `seen` de-duplicates two identical headings in one document;
+   * both sides walk the text top-down, so the suffixes agree.
+   */
+  const seenHeadings = new Map<string, number>();
   let i = 0;
 
   while (i < lines.length) {
@@ -80,8 +89,9 @@ export function renderMarkdown(text: string, onLink?: (name: string) => void): J
     const h = line.match(/^(#{1,3})\s+(.+)/);
     if (h) {
       const level = (h[1] ?? '#').length;
+      const label = (h[2] ?? '').trim();
       blocks.push(
-        <div key={blocks.length} className={HEADING_CLASS[level - 1]}>
+        <div key={blocks.length} id={headingId(label, seenHeadings)} className={HEADING_CLASS[level - 1]}>
           {renderInline(h[2] ?? '', onLink)}
         </div>,
       );

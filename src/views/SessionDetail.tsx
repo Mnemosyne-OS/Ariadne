@@ -7,11 +7,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { MnemoCartridgeSDK } from '../sdk/mnemo-sdk';
 import type { DocState, SessionState } from '@mnemosyne_os/agent-transcripts';
-import type { Settings } from '../lib/settings';
+import type { ExportedMark, Settings } from '../lib/settings';
 import { notesForSession } from '../lib/sessionNotes';
 import { groupWrittenFiles, type WrittenBand } from '../lib/writtenFiles';
 import { buildSummaryPrompt, splitToneLine } from '../lib/summarise';
-import { shortPath } from '../lib/format';
+import { ago, shortPath } from '../lib/format';
 import { fill, type Dict } from '../i18n';
 
 interface Props {
@@ -24,6 +24,10 @@ interface Props {
   onOpenNote: (path: string) => void;
   /** Files open in the same drawer as notes and sessions. */
   onOpenFile: (path: string) => void;
+  /** What Ariadne already wrote out for THIS session, if anything. A record of
+   *  what it did, never a claim that the file is still there. */
+  exported: ExportedMark | undefined;
+  onExported: (sessionPath: string, mark: ExportedMark) => void;
 }
 
 interface Summary { text: string; tone: string | null; used: number; total: number }
@@ -37,10 +41,57 @@ const BAND_LABEL: Record<WrittenBand, (t: Dict) => string> = {
 };
 
 export default function SessionDetail(props: Props): JSX.Element {
-  const { t, lang, sdk, settings, session, docs, onOpenNote, onOpenFile } = props;
+  const { t, lang, sdk, settings, session, docs, onOpenNote, onOpenFile, exported, onExported } = props;
   const [summaries, setSummaries] = useState<Record<string, Summary>>({});
   const [writing, setWriting] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  /**
+   * Writes the conversation as a document beside its own transcript, then opens
+   * it. REGENERATED on every press: the session may still be running, and a
+   * stale file would be Ariadne showing a conversation that has moved on —
+   * which is also why the button says "write" even when one already exists.
+   *
+   * 🚨 It costs no tokens and calls no model. The document is the transcript
+   * re-rendered by the host, so this button is not in the summaries family and
+   * must not read like it.
+   */
+  const exportConversation = useCallback(async () => {
+    if (exporting) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      const res = await sdk.invoke<{ success: boolean; file?: string; turns?: number; skipped?: number; error?: string }>(
+        'agent.exportConversation',
+        {
+          transcript: session.path,
+          title: session.title ?? '',
+          who: { human: t.mdHuman, assistant: t.mdAssistant },
+        },
+      );
+      if (res?.success && typeof res.file === 'string') {
+        onExported(session.path, {
+          file: res.file,
+          at: new Date().toISOString(),
+          // 🎭 Absent is absent: a count the host did not report is not zero.
+          turns: typeof res.turns === 'number' ? res.turns : 0,
+          skipped: typeof res.skipped === 'number' ? res.skipped : 0,
+        });
+      } else {
+        setExportError(res?.error ?? t.exportFailed);
+      }
+    } catch (err) {
+      // A refused permission arrives here. Never swallowed: a failure that
+      // looks like nothing happening is the failure that gets reported as
+      // "the button does nothing".
+      console.warn('[Ariadne] export refused:', err);
+      setExportError(String(err));
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, sdk, session.path, session.title, t, onExported]);
 
   // Two different claims, kept apart on purpose (see lib/sessionNotes).
   const linked = useMemo(() => notesForSession(session, docs), [session, docs]);
@@ -112,6 +163,38 @@ export default function SessionDetail(props: Props): JSX.Element {
         )}
 
         {summaryError && <p className="caveat err">{summaryError}</p>}
+
+        {/* Its own block, deliberately away from the summary above: that one
+            asks a model and costs tokens, this one re-renders a transcript the
+            host already has. Two buttons side by side, one of which spends and
+            one of which does not, is where a person stops pressing either. */}
+        <div className="conversation-doc">
+          <button
+            type="button"
+            data-testid="export-conversation"
+            disabled={exporting}
+            onClick={() => void exportConversation()}
+          >
+            {exporting ? t.exporting : t.exportConversation}
+          </button>
+          {/* ⚠️ What Ariadne DID, not a claim about the disk. The file may be
+              gone since; opening it then shows the drawer's own refusal, which
+              is never rendered as an empty file. */}
+          {exported && (
+            <button
+              type="button"
+              className="link"
+              data-testid="open-conversation"
+              onClick={() => onOpenFile(exported.file)}
+            >
+              {fill(t.exportedAt, { when: ago(exported.at), turns: exported.turns })}
+            </button>
+          )}
+          {exported && exported.skipped > 0 && (
+            <p className="caveat">{fill(t.exportSkipped, { n: exported.skipped })}</p>
+          )}
+          {exportError && <p className="caveat err">{exportError}</p>}
+        </div>
       </section>
 
       {(linked.written.length > 0 || linked.during.length > 0) && (
@@ -119,7 +202,7 @@ export default function SessionDetail(props: Props): JSX.Element {
           <h3>{t.notes}</h3>
           {linked.written.length > 0 && (
             <>
-              <p className="muted small">{t.notesWritten}</p>
+              <p className="small">{t.notesWritten}</p>
               <ul className="note-links">
                 {/* A note the session wrote through a shell belongs HERE, not
                     under "changed while it was open": that column is for a
@@ -140,7 +223,7 @@ export default function SessionDetail(props: Props): JSX.Element {
           )}
           {linked.during.length > 0 && (
             <>
-              <p className="muted small">{t.notesDuring}</p>
+              <p className="small">{t.notesDuring}</p>
               <ul className="note-links weak">
                 {linked.during.map(d => (
                   <li key={d.path} onClick={() => onOpenNote(d.path)}>{d.name}</li>
@@ -165,7 +248,7 @@ export default function SessionDetail(props: Props): JSX.Element {
                   {/* A band says what it holds. The heading is the whole point:
                       three documents someone will read used to sit under
                       identical bullets in the middle of fifty-five scripts. */}
-                  <p className="muted small">
+                  <p className="small">
                     {BAND_LABEL[band](t)} <span className="count">{rows.length}</span>
                   </p>
                   {band === 'notes' && <p className="caveat">{t.bandNotesCaveat}</p>}

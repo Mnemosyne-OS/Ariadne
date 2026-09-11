@@ -96,6 +96,55 @@ export function countMarkdown(rows: readonly ArtifactRow[]): number {
 }
 
 /**
+ * The DOCUMENTS among these rows: markdown an agent wrote for a person to
+ * read, which is not the same thing as every `.md` it touched.
+ *
+ * 🚨 The agent's own notes are excluded, and that is the whole point. A single
+ * working session writes half a dozen memory notes into the folder its
+ * connector reads; several sessions run at once. Ranked by recency with those
+ * in, the four newest markdown are ALWAYS the machine's own notes and the
+ * document someone actually asked for is never on screen (field, 2026-09-09:
+ * « j'ai pas les 3 markdown dans ma fenêtre » — they existed, they were fifth).
+ *
+ * The exclusion is a RECORD, never a guess about a filename: a file is the
+ * agent's own note when the connector's document list holds it. Same rule the
+ * session panel's bands use (lib/writtenFiles), so the tile and the panel
+ * cannot disagree about what counts as a document.
+ */
+function isOwnNote(path: string, notePaths: ReadonlySet<string>): boolean {
+  return notePaths.has(path.replace(/\\/g, '/').toLowerCase());
+}
+
+/** Note paths as a set, keyed the way Windows makes necessary. */
+export function notePathSet(docs: readonly { path: string }[]): Set<string> {
+  return new Set(docs.map(d => d.path.replace(/\\/g, '/').toLowerCase()));
+}
+
+export function documentRows(rows: readonly ArtifactRow[], notePaths: ReadonlySet<string>): ArtifactRow[] {
+  return rows.filter(r => isMarkdownPath(r.path) && !isOwnNote(r.path, notePaths));
+}
+
+/**
+ * The most recent of them, for the dashboard tile — « je les veux dans ma
+ * tuile ». A count you have to click to find out what it counts is a count.
+ *
+ * The rows arrive newest-first and deduplicated by path (buildArtifactRows),
+ * so this is a filter and a slice, never a second sort — two orderings of one
+ * list is how the tile and the pane end up disagreeing about what is recent.
+ */
+export function recentDocuments(
+  rows: readonly ArtifactRow[], notePaths: ReadonlySet<string>, limit: number,
+): ArtifactRow[] {
+  if (limit <= 0) return [];
+  return documentRows(rows, notePaths).slice(0, limit);
+}
+
+/** A file's own name, for a list too narrow to carry its path. */
+export function fileName(path: string): string {
+  return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
+}
+
+/**
  * How many sessions the numbers above the list were built from, and whether
  * any of them stopped short.
  *

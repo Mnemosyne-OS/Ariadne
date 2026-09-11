@@ -6,7 +6,10 @@
  * carries: which file, how it is known, and whether it already went to memory.
  */
 import { describe, it, expect } from 'vitest';
-import { buildArtifactRows, countCapped, countMarkdown, filterArtifactRows } from './artifactRows';
+import {
+  buildArtifactRows, countCapped, countMarkdown, filterArtifactRows,
+  documentRows, recentDocuments, notePathSet, fileName,
+} from './artifactRows';
 import type { Artifact, SessionState } from '@mnemosyne_os/agent-transcripts';
 import { DEFAULTS, savedKey, type Settings } from './settings';
 
@@ -143,5 +146,83 @@ describe('countCapped', () => {
 
   it('is zero when every session listed all of its files', () => {
     expect(countCapped([session(), session()])).toBe(0);
+  });
+});
+
+describe('documents — markdown written for a person', () => {
+  /**
+   * 🚨 The defect this exists to prevent, and it reached the screen once
+   * (2026-09-09: « j'ai pas les 3 markdown dans ma fenêtre »). A single
+   * working session writes half a dozen memory notes into the folder its
+   * connector reads, and several sessions run at once — so ranked by recency
+   * with those in, the newest markdown are ALWAYS the machine's own notes and
+   * the document someone asked for is never on screen. It existed. It was
+   * fifth.
+   */
+  const rows = (paths: string[]) => buildArtifactRows(
+    [session({ artifacts: paths.map(p => art(p, 'tool', '2026-08-28T11:00:00Z')) })],
+    DEFAULTS,
+  );
+
+  it('leaves out the agent\u2019s own notes, from the RECORD and not from the name', () => {
+    const all = rows([
+      'C:/w/proj/plan.md',
+      'C:/mem/silence-is-not-doubt.md',
+      'C:/w/proj/index.ts',
+    ]);
+    // Nothing in the NAME says which is a note — only the connector's document
+    // list does, so that is what decides.
+    const notes = notePathSet([{ path: 'C:/mem/silence-is-not-doubt.md' }]);
+    expect(documentRows(all, notes).map(r => r.path)).toEqual(['C:/w/proj/plan.md']);
+    // With no document list, nothing is a note and every markdown counts.
+    expect(documentRows(all, notePathSet([])).map(r => r.path))
+      .toEqual(['C:/w/proj/plan.md', 'C:/mem/silence-is-not-doubt.md']);
+  });
+
+  it('matches a note through Windows separators and case', () => {
+    // 🪤 The same file arrives as `C:\\mem\\N.md` from one place and
+    // `C:/mem/n.md` from another; a note missed over a backslash is a note
+    // that lands in the tile.
+    const all = rows(['C:\\mem\\Note.md']);
+    expect(documentRows(all, notePathSet([{ path: 'C:/mem/note.md' }]))).toEqual([]);
+  });
+
+  it('counts and lists the SAME population', () => {
+    // The tile shows `documents.length` and slices `documents`: one array, so
+    // a number and a list that describe different things is not expressible.
+    const all = rows(['C:/w/a.md', 'C:/w/b.md', 'C:/w/c.md', 'C:/w/d.md', 'C:/w/e.md']);
+    const docs = documentRows(all, notePathSet([]));
+    expect(docs.length).toBe(5);
+    expect(recentDocuments(all, notePathSet([]), 4)).toEqual(docs.slice(0, 4));
+  });
+
+  it('keeps the newest, and never re-sorts', () => {
+    const older = session({
+      path: 'C:/old.jsonl', lastEventAt: '2026-08-27T10:00:00Z',
+      artifacts: [art('C:/w/old.md', 'tool', '2026-08-27T10:00:00Z')],
+    });
+    const newer = session({
+      path: 'C:/new.jsonl', lastEventAt: '2026-08-29T10:00:00Z',
+      artifacts: [art('C:/w/new.md', 'tool', '2026-08-29T10:00:00Z')],
+    });
+    const all = buildArtifactRows([older, newer], DEFAULTS);
+    expect(recentDocuments(all, notePathSet([]), 1).map(r => r.path)).toEqual(['C:/w/new.md']);
+  });
+
+  it('asks for none and gets none', () => {
+    const all = rows(['C:/w/a.md']);
+    expect(recentDocuments(all, notePathSet([]), 0)).toEqual([]);
+    expect(recentDocuments(all, notePathSet([]), -3)).toEqual([]);
+  });
+});
+
+describe('fileName', () => {
+  it('is the file, whichever separator the OS handed back', () => {
+    expect(fileName('C:/a/b/plan.md')).toBe('plan.md');
+    expect(fileName('C:\\a\\b\\plan.md')).toBe('plan.md');
+    // 🎭 Nothing to cut is not nothing: a bare name comes back as itself
+    // rather than as an empty label on a button.
+    expect(fileName('plan.md')).toBe('plan.md');
+    expect(fileName('')).toBe('');
   });
 });

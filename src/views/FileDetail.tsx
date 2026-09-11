@@ -22,6 +22,7 @@ import { buildKeptBody, vaultChoices, type VaultChoice } from '../lib/keep';
 import { isMarkdownPath, splitFrontmatter } from '../lib/mdFile';
 import { renderMarkdown } from '../lib/markdown';
 import FileEditor from './FileEditor';
+import FileReaderTools from './FileReaderTools';
 import EditBadge from './EditBadge';
 import { ago } from '../lib/format';
 import { fill, type Dict } from '../i18n';
@@ -56,6 +57,8 @@ interface Props {
    *  unresolved name does nothing: a link marks something worth writing later,
    *  and inventing a destination would be worse than a dead span. */
   onNoteLink?: (name: string) => void;
+  /** Opening another file from the folder listing, in this same drawer. */
+  onOpenFile: (path: string) => void;
 }
 
 type Load =
@@ -66,7 +69,7 @@ type Load =
 export default function FileDetail(props: Props): JSX.Element {
   const {
     t, sdk, ctx, saved, onSaved,
-    editMark, editedAt, editing, onEdit, onEditDone, onEditCancel, onNoteLink,
+    editMark, editedAt, editing, onEdit, onEditDone, onEditCancel, onNoteLink, onOpenFile,
   } = props;
   const path = ctx.artifact.path;
   /** Markdown is painted, and the source stays one press away. Sticky across
@@ -304,6 +307,19 @@ export default function FileDetail(props: Props): JSX.Element {
             {t.openInOS}
           </button>
         </div>
+
+        {/* The reading tools sit between the heading row and the body: what
+            this is, what is in it, what is beside it — then the text. Only on
+            a file that actually loaded; measuring a refusal would be the panel
+            describing a document it never read. */}
+        {load.state === 'ok' && shown.text.trim() !== '' && (
+          <FileReaderTools
+            t={t} sdk={sdk} path={path}
+            text={load.text}
+            isMarkdown={isMd}
+            onOpenFile={onOpenFile}
+          />
+        )}
 
         {load.state === 'reading' && <p className="muted small">{t.reading}</p>}
 

@@ -1,15 +1,18 @@
 {
   "name": "@mnemosyne-plugins/ariadne",
   "displayName": "Ariadne",
-  "version": "0.4.1",
+  "version": "0.6.0",
   "description": "Follow what your coding agents are doing, and keep the drafts worth keeping. Ariadne reads the session transcripts and memory notes your agents already write on this machine, lists every file they produced, including the ones written through a shell, and lets you send any of them into a vault you choose, one file at a time. It warns you when two sessions are live on the same branch, and can write a first-person summary of a session from your own messages. Nothing is read until you pick the folder, and nothing reaches memory without a press.",
   "permissions": [
     "dialog:open",
     "model:infer",
     "vault:read",
-    "vault:write"
+    "vault:write",
+    "cockpit:pin",
+    "agent:export",
+    "metrics:read"
   ],
-  "_permissions": "vault:read lists the vaults so a save can name its destination; vault:write performs that save. Both are used ONLY on a press, one file at a time. There is no watcher, no rule and no standing import.",
+  "_permissions": "vault:read lists the vaults so a save can name its destination; vault:write performs that save. Both are used ONLY on a press, one file at a time. There is no watcher, no rule and no standing import. cockpit:pin lets a session you pinned (a press) stay on the canvas as a small card — title, harness, last seen — refreshed while Ariadne is open; nothing is pinned without that press, and the card can be moved or removed from the canvas. agent:export writes ONE session's conversation as a readable document, in that session's own folder beside the transcript it was made from — on a press, regenerated each time, nothing sent anywhere. It is its own permission and not part of dialog:open, which only READS. metrics:read reads ONE host fact — whether this app is the process answering agents on its SDK port, and how many are connected — so a session listed here can be told apart from a session talking to a leftover headless daemon. It is a count and a port, never a name and never memory.",
   "updateStrategy": "git",
   "repository": "https://github.com/Mnemosyne-OS/Ariadne",
   "entrypoints": {
