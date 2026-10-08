@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ago, baseName, sessionLabel, shortPath } from './format';
+import { STRINGS } from '../i18n';
+
+const en = STRINGS.en;
+const fr = STRINGS.fr;
 
 afterEach(() => { vi.useRealTimers(); });
 
@@ -11,20 +15,27 @@ function at(iso: string) {
 
 describe('ago', () => {
   it('renders an em dash for an absent timestamp, never "NaN"', () => {
-    expect(ago(null)).toBe('—');
+    expect(ago(null, en)).toBe('—');
   });
 
   it('counts seconds, then minutes, then hours, then days', () => {
     at('2026-08-28T12:00:00Z');
-    expect(ago('2026-08-28T11:59:30Z')).toBe('30 s');
-    expect(ago('2026-08-28T11:45:00Z')).toBe('15 min');
-    expect(ago('2026-08-28T08:00:00Z')).toBe('4 h');
-    expect(ago('2026-08-25T12:00:00Z')).toBe('3 j');
+    expect(ago('2026-08-28T11:59:30Z', en)).toBe('30 s');
+    expect(ago('2026-08-28T11:45:00Z', en)).toBe('15 min');
+    expect(ago('2026-08-28T08:00:00Z', en)).toBe('4 h');
+    expect(ago('2026-08-25T12:00:00Z', en)).toBe('3 d');
+    // The day unit is the only word, and it follows the language.
+    expect(ago('2026-08-25T12:00:00Z', fr)).toBe('3 j');
   });
 
   it('never goes negative on a clock that drifted forward', () => {
     at('2026-08-28T12:00:00Z');
-    expect(ago('2026-08-28T12:00:10Z')).toBe('0 s');
+    expect(ago('2026-08-28T12:00:10Z', en)).toBe('0 s');
+  });
+
+  it('renders an em dash for an unreadable timestamp, never "NaN"', () => {
+    at('2026-08-28T12:00:00Z');
+    expect(ago('not a date', en)).toBe('—');
   });
 });
 

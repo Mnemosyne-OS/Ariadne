@@ -588,14 +588,32 @@ td.doc { width: 26px; text-align: center; }
 /* ── the runs table never scrolls sideways ────────────────────────────────── */
 
 /* Fixed layout so the title column absorbs the slack instead of the table
-   growing past the widget and forcing a horizontal scrollbar. */
+   growing past the widget and forcing a horizontal scrollbar.
+
+   🪤 These widths used to be `td:nth-child(n)`. Adding the tokens column in
+   the middle re-pointed every one of them at its neighbour: the project and
+   branch columns collapsed to 12px and the pin lost its own width, with
+   nothing failing anywhere. A width keyed to a CLASS cannot be reassigned by
+   inserting a column. */
 table.runs { table-layout: fixed; }
-table.runs td:nth-child(1) { width: 68px; }
-table.runs td:nth-child(3) { width: 150px; }
-table.runs td:nth-child(4) { width: 120px; }
-table.runs td:nth-child(5) { width: 44px; }
-table.runs td:nth-child(6) { width: 82px; }
-table.runs td { max-width: 0; }          /* lets ellipsis apply inside fixed layout */
+/* The title column takes whatever is left, so every width here is taken FROM
+   it. The tokens column had to come out of somewhere: the branch and the
+   subagent marker both had more room than their content ever uses ("main",
+   "sous-agent"), and they give back nearly all of it. */
+table.runs td.ago { width: 60px; }
+table.runs td.sel { width: 28px; }
+table.runs td.proj { width: 132px; }
+table.runs td.branch { width: 96px; }
+table.runs td.num { width: 38px; }
+table.runs td.tok { width: 84px; }
+table.runs td.kind { width: 62px; }
+/* 🪤 This was `max-width: 0`, meant to defeat the global `td { max-width:
+   200px }` so long titles ellipsize. It also defeated every width above:
+   Chromium clamps a fixed-layout cell to min(width, max-width), so the four
+   sized columns collapsed to their min-content and clipped — "_MNEMOSYNE OS"
+   rendered as "_Nm". `none` lifts the global cap without capping anything;
+   the ellipsis comes from the nowrap/overflow already on `td`. */
+table.runs td { max-width: none; }
 table.runs .what { color: var(--text-primary, #f5f0e8); }
 
 /* A wider drawer, and room to read: this is where notes and summaries are
@@ -859,6 +877,13 @@ button.link:hover { color: var(--accent, #6f8cff); }
 /* ── keeping a draft ──────────────────────────────────────────────────────── */
 
 .keep-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+/* The ticked sessions' keep, above the table (doc 132 lot 1). */
+.keep-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 0 0 10px; padding: 8px 10px;
+  border: 1px solid var(--border, rgba(255,255,255,0.12)); border-radius: 8px;
+}
+.keep-bar .keep-conversation { flex-basis: 100%; }
 
 .keep-row select {
   flex: 1;
@@ -946,7 +971,7 @@ button.primary { border-color: var(--accent, #6f8cff); color: var(--accent, #6f8
 }
 .pin-live:hover { border-color: var(--accent, #6f8cff); color: var(--accent, #6f8cff); }
 .pinned-count { font-size: 12px; color: var(--text-muted, #a7a7b0); }
-table.runs td:nth-child(7) { width: 30px; text-align: right; }
+table.runs td.doc { width: 30px; text-align: right; }
 .pinbtn {
   font: inherit; font-size: 12px; line-height: 1; cursor: pointer;
   padding: 2px 4px; border-radius: 4px;
@@ -1083,3 +1108,108 @@ div.docs-count { cursor: default; }
   color: var(--accent, #6f8cff);
   text-decoration: underline;
 }
+
+/* ── The activity calendar ─────────────────────────────────────────────────
+   Shades come from the shell's accent so the graph follows the user's theme
+   and never carries a palette of its own. Five steps, because four plus
+   "nothing" is what a reader can actually tell apart at 11px.
+
+   🚨 `.future` is NOT `.l0`. An empty day and a day that has not happened get
+   the same shade nowhere: the first is a measurement, the second is a hole. */
+.activity .block-head { align-items: center; }
+
+.metrics { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.metrics .chip {
+  background: transparent;
+  border: 1px solid var(--border-subtle, #2a2a31);
+  color: var(--text-muted, #a7a7b0);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.metrics .chip:hover { color: var(--text-secondary, #dcd8d0); }
+.metrics .chip.on {
+  color: var(--text-primary, #f5f0e8);
+  border-color: var(--accent, #6f8cff);
+  background: color-mix(in srgb, var(--accent, #6f8cff) 18%, transparent);
+}
+
+.activity-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 10px 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary, #dcd8d0);
+}
+.activity-head .big {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary, #f5f0e8);
+  font-variant-numeric: tabular-nums;
+}
+.activity-head .unit { color: var(--text-muted, #a7a7b0); }
+.activity-head .sep { color: var(--border-subtle, #2a2a31); }
+.activity-head .dim { color: var(--text-muted, #a7a7b0); }
+.activity-head .streak { cursor: help; }
+
+/* The grid is wider than a narrow window, so it scrolls sideways rather than
+   squeezing the squares into something nobody can point at. */
+.cal-scroll { overflow-x: auto; padding-bottom: 4px; }
+.cal { display: inline-block; min-width: min-content; }
+
+.cal-months {
+  display: grid;
+  gap: 0;
+  height: 14px;
+  font-size: 10px;
+  color: var(--text-muted, #a7a7b0);
+}
+.cal-months span { grid-row: 1; white-space: nowrap; }
+
+.cal-grid { display: grid; gap: 3px; }
+.cal-week { display: grid; grid-template-rows: repeat(7, 10px); gap: 3px; }
+
+.cal-day {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--bg-void, #0a0a0c);
+  border: 1px solid var(--border-subtle, #2a2a31);
+  box-sizing: border-box;
+}
+.cal-day.l1 { background: color-mix(in srgb, var(--accent, #6f8cff) 25%, transparent); border-color: transparent; }
+.cal-day.l2 { background: color-mix(in srgb, var(--accent, #6f8cff) 48%, transparent); border-color: transparent; }
+.cal-day.l3 { background: color-mix(in srgb, var(--accent, #6f8cff) 72%, transparent); border-color: transparent; }
+.cal-day.l4 { background: var(--accent, #6f8cff); border-color: transparent; }
+/* A day that has not happened. No fill, no outline: nothing to read. */
+.cal-day.future { background: transparent; border-color: transparent; }
+
+.cal-legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-muted, #a7a7b0);
+}
+.cal-legend span:first-child { margin-right: 3px; }
+.cal-legend span:last-child { margin-left: 3px; }
+
+/* The table column. Two numbers, never their sum — the exact four are in the
+   tooltip, where there is room for them. */
+td.tok {
+  font-size: 11px;
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, #a7a7b0);
+  cursor: help;
+}
+td.tok .up { color: var(--text-secondary, #dcd8d0); }
+td.tok .down { color: var(--accent, #6f8cff); }
+td.tok i { font-style: normal; opacity: 0.5; margin-right: 1px; font-size: 9px; }

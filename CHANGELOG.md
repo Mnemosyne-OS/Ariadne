@@ -1,10 +1,92 @@
 # Changelog
 
+## 0.8.0 - 2026-10-01
+
+Keep a whole conversation with your coding agent in memory, so "why did we do
+that" finds the discussion and not only its conclusion.
+
+### Added
+
+- **Keep this conversation**, in the drawer of a Claude Code session. You pick
+  the vault. Ariadne asks the app to write the session as one Markdown file in
+  that vault's watched folder, and the vault reads it like any other note.
+- **Keep several at once.** Tick sessions in the table, pick the vault, press
+  once. Each session that could not be kept is listed with the reason.
+- **Your words and the agent's words, each under its own heading** with the
+  date. Tool results, thinking and sub-agents stay out. Tool calls become one
+  line per turn, such as "read 4 files, edited 2 (a.ts, b.ts)".
+- **A section that holds a key, a token or a word you blocked is left out**,
+  and the screen says which kind it was. A password typed in plain text has no
+  recognisable shape, so it stays in.
+- Keeping a session again replaces its file. A session that has not changed is
+  left as it is, so nothing is read twice.
+- **Keep a project automatically.** One rule per project: every session that
+  has not moved for 24 hours goes to the vault you picked, when the app starts
+  and every 3 hours, 25 sessions a pass, oldest first. The app asks you in its
+  own window before the rule exists. The panel shows what the last pass kept,
+  with "Run now" and "Revoke the rule". A session Claude Code deletes later
+  stays in the vault.
+- **Antigravity and Antigravity IDE sessions can be kept too**, one at a time
+  or ticked in the table. The standing rule is for Claude Code projects.
+
+### Measured
+
+- On 599 real sessions, 2026-10-01: 2.3 GB of transcripts become 24 MB of
+  Markdown, cut into 17 345 parts. None is over 18 000 characters, and every
+  part except the file's own header starts with a speaker and a date.
+- Asked ten "why" questions, these files found the right session 9 times out
+  of 10. The same sessions with only the human's words found it 4 times.
+
+### Needs
+
+- Mnemosyne OS with the `agent.keepDestinations` and `agent.keepConversations`
+  actions (the release after 1.6.0). On an older app the panel shows the
+  app's refusal.
+
+
+## 0.7.0 - 2026-09-16
+
+What your agents consumed, which the transcripts have always recorded and
+nothing has ever read: a token count on every session, and a year of days
+shaded by it. No new permission — it is the same folder, read the same way —
+but the consent card names the new read, because a record of how much you
+spend and at what hours is not covered by consent to "which files it edited".
+
+### Added
+
+- **A tokens column on every session.** Two figures and never one: `↑` what the
+  provider had to read fresh, `↓` what the model wrote. The four exact
+  counters, thinking included, are in the tooltip.
+- **An activity calendar**, GitHub-shaped: a year of squares, active days, and
+  the current run of days. Four things it can be shaded by — calls, fresh
+  tokens, output tokens, cache reads — chosen with a press, and **no "total"**,
+  because there is no honest one (see below).
+
+### Measured
+
+- On 870 real Claude Code transcripts, 2026-09-16: **105 736 of 213 461 usage
+  lines are copies of a call already counted**. The harness writes one line per
+  content block of a reply and repeats the whole usage object on each, so a
+  reader that ignores `requestId` reports 107 725 calls as 213 461. The
+  connector declares that id, and the shipped fixture fails without it.
+- On the same corpus, cache reads total **39.5 billion tokens against 88
+  million of output**. That is why the four counters are declared separately,
+  why nothing adds them, and why the graph always says which one it is showing.
+
+### Fixed
+
+- **The runs table's columns were collapsing.** `table.runs td { max-width: 0 }`
+  — there to let long titles ellipsize — clamped every sized column to its
+  min-content, so the project column rendered "_MNEMOSYNE OS" as "_Nm". Widths
+  are now keyed to classes rather than to `nth-child`, which is what let adding
+  a column in the middle silently re-point all of them at their neighbour.
+
 ## 0.6.1 - 2026-10-08
 
 Manifest only, no code change. Ariadne now declares keywords and a category,
 so Mnemosyne OS can propose it when someone describes what they want instead of
-typing its name.
+typing its name. Published from the 0.6.0 code while 0.7.0 and 0.8.0 were still
+unreleased; 0.8.0 carries the same manifest fields.
 
 ## 0.6.0 - 2026-09-11
 

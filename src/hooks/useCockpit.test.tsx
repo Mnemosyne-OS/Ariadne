@@ -24,7 +24,7 @@ function session(path: string): SessionState {
   return {
     file: 's.jsonl', path, sessionId: path, title: path, model: null, projectPath: null, branch: null,
     isSidechain: false, lastEventAt: new Date().toISOString(), firstEventAt: null, tool: null,
-    sizeBytes: 0, artifacts: [], artifactsCapped: false, humanTurns: [],
+    sizeBytes: 0, artifacts: [], artifactsCapped: false, humanTurns: [], tokens: null,
   };
 }
 

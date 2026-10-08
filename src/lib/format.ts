@@ -6,6 +6,8 @@
  *  too — a second copy here would let the screen and the agent disagree about
  *  the same second. The version there also refuses an unparseable date, which
  *  this one silently turned into NaN. */
+import { minutesSince } from '@mnemosyne_os/agent-transcripts';
+import { fill } from '../i18n';
 
 /**
  * Elapsed time, never a status.
@@ -14,13 +16,18 @@
  * produce the same silence. "Last seen" stays true in both cases and lets the
  * person conclude (doc 93 §2).
  */
-export function ago(iso: string | null): string {
-  if (!iso) return '—';
-  const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+/** `t` is any language's dictionary: only its day unit is read, as a string
+ *  (`Dict` is the English literal type, so `Pick<Dict, …>` refused French). */
+export function ago(iso: string | null, t: { readonly agoDays: string }): string {
+  // One reading of a timestamp for the whole cartridge: an unreadable date is
+  // infinitely old in `minutesSince`, and here it is a dash, never "NaN".
+  const minutes = minutesSince(iso);
+  if (!Number.isFinite(minutes)) return '—';
+  const s = Math.max(0, Math.round(minutes * 60));
   if (s < 60) return `${s} s`;
   if (s < 3600) return `${Math.floor(s / 60)} min`;
   if (s < 86400) return `${Math.floor(s / 3600)} h`;
-  return `${Math.floor(s / 86400)} j`;
+  return fill(t.agoDays, { n: Math.floor(s / 86400) });
 }
 
 export function baseName(p: string | null): string | null {

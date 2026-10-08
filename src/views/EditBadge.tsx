@@ -30,7 +30,7 @@ export default function EditBadge({ t, mark, at }: Props): JSX.Element | null {
 
   if (mark === 'here') {
     return (
-      <span className="tag edit-here" title={at ? fill(t.editedHereAt, { when: ago(at) }) : undefined}>
+      <span className="tag edit-here" title={at ? fill(t.editedHereAt, { when: ago(at, t) }) : undefined}>
         {t.editedHere}
       </span>
     );

@@ -223,7 +223,7 @@ export default function FileDetail(props: Props): JSX.Element {
             {ctx.artifact.origin === 'shell' ? t.originShell : t.originTool}
           </span>
           <span className="muted">{ctx.agent}</span>
-          {ctx.artifact.at && <span className="muted">{ago(ctx.artifact.at)}</span>}
+          {ctx.artifact.at && <span className="muted">{ago(ctx.artifact.at, t)}</span>}
         </div>
         <p className="file-path"><code>{path}</code></p>
         <div className="panel-actions">
@@ -240,7 +240,7 @@ export default function FileDetail(props: Props): JSX.Element {
 
         {saved && !justKept && (
           <p className="muted small">
-            {fill(t.keptAlready, { vault: savedVaultName ?? saved.vault, when: ago(saved.at) })}
+            {fill(t.keptAlready, { vault: savedVaultName ?? saved.vault, when: ago(saved.at, t) })}
           </p>
         )}
 

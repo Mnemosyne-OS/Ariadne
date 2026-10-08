@@ -12,7 +12,7 @@ import { MnemoCartridgeSDK, onHostConfig } from './sdk/mnemo-sdk';
 import { collisionReport, liveSessions, type SessionState } from '@mnemosyne_os/agent-transcripts';
 import { SOURCES, sourceById } from './lib/sources';
 import {
-  loadSettings, saveSettings, resetSettings, rememberSaved, rememberEdited, rememberExported, savedKey,
+  loadSettings, saveSettings, resetSettings, rememberSaved, rememberEdited, rememberExported, rememberKeptConversations, savedKey,
   type SavedMark, type ExportedMark, type Settings,
 } from './lib/settings';
 import { editMark, lastAgentTouch } from './lib/handEdits';
@@ -35,6 +35,10 @@ import Dashboard from './views/Dashboard';
 import NotesTab from './views/NotesTab';
 import Drawer from './views/Drawer';
 import SessionDetail from './views/SessionDetail';
+import KeepConversation from './views/KeepConversation';
+
+/** Harnesses whose sessions the app can keep in memory (doc 132 lots 1 and 3). */
+const KEEPABLE: ReadonlySet<string> = new Set(['claude-code', 'antigravity', 'antigravity-ide']);
 import FileDetail from './views/FileDetail';
 import FileEditor from './views/FileEditor';
 import EditBadge from './views/EditBadge';
@@ -304,6 +308,27 @@ export default function App(): JSX.Element {
     showFile(mark.file);
   }, [showFile]);
 
+  /** Sessions ticked in the table for a keep, by path. Never persisted: a
+   *  selection is a question asked now, not a standing choice. */
+  const [keepSelection, setKeepSelection] = useState<Set<string>>(() => new Set());
+  const toggleKeepSelection = useCallback((path: string) => {
+    setKeepSelection(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path); else next.add(path);
+      return next;
+    });
+  }, []);
+
+  /** Record the conversations a keep put in memory, and the vault for the next one. */
+  const noteKeptConversations = useCallback((paths: string[], vaultId: string, vaultName: string, at: string) => {
+    if (paths.length === 0) return;
+    setSettings(prev => {
+      const next = rememberKeptConversations(prev, paths, vaultId, { vault: vaultName, at });
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+
   /**
    * Record a hand edit, and drop the cached parse of that file so the next
    * pass re-reads it. Without the second half, the panel would go on showing
@@ -389,7 +414,7 @@ export default function App(): JSX.Element {
         />
       ) : (
         <Dashboard
-          t={t} sessions={current.sessions} docs={current.docs} live={liveCount}
+          t={t} lang={lang} sessions={current.sessions} docs={current.docs} live={liveCount}
           collisions={shared.groups} agentOf={shared.agentOf} unplaceable={shared.unplaceable}
           busy={current.busy} error={current.error}
           stats={current.stats} folder={settings.folders[source.id]}
@@ -400,6 +425,19 @@ export default function App(): JSX.Element {
           agentPort={agentPort}
           documents={documents}
           exported={settings.exported} onOpenFile={p => showFile(p)}
+          selected={KEEPABLE.has(source.sessions.id) ? keepSelection : null}
+          onToggleSelect={toggleKeepSelection}
+          onClearSelection={() => setKeepSelection(new Set())}
+          keepSlot={keepSelection.size > 0 ? (
+            <KeepConversation
+              t={t} sdk={sdk}
+              sessions={current.sessions
+                .filter(s => keepSelection.has(s.path))
+                .map(s => ({ path: s.path, title: s.title ?? null }))}
+              lastVault={settings.lastKeepVault}
+              onKept={noteKeptConversations}
+            />
+          ) : null}
           onBrowseDocuments={source.notes ? () => {
             setTab('yours');
             setDocumentsRequest(n => n + 1);
@@ -428,6 +466,11 @@ export default function App(): JSX.Element {
             onOpenNote={showNote} onOpenFile={p => showFile(p)}
             exported={settings.exported[savedKey(openedSession.path)]}
             onExported={noteExported}
+            kept={settings.keptConversations[savedKey(openedSession.path)]}
+            lastKeepVault={settings.lastKeepVault}
+            onKept={noteKeptConversations}
+            canKeep={KEEPABLE.has(source?.sessions.id ?? '')}
+            canKeepRule={source?.sessions.id === 'claude-code'}
           />
         )}
         {panel?.kind === 'file' && openedFile && source && (

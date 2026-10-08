@@ -12,7 +12,7 @@ const session = (over: Partial<SessionState> = {}): SessionState => ({
   projectPath: 'C:/w/proj', branch: 'main', isSidechain: false,
   firstEventAt: null, lastEventAt: '2026-08-28T11:00:00Z',
   tool: null, sizeBytes: 1, artifacts: [], artifactsCapped: false,
-  humanTurns: [{ at: null, text: 'do the thing' }], ...over,
+  humanTurns: [{ at: null, text: 'do the thing' }], tokens: null, ...over,
 });
 
 const build = (over: Partial<SessionState> = {}, opts = {}) => buildSummaryPrompt({

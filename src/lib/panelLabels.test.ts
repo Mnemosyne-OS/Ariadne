@@ -30,7 +30,7 @@ const session = (over: Partial<SessionState> = {}): SessionState => ({
   file: 's.jsonl', path: 'C:/s.jsonl', sessionId: 'S1', title: 'Refactor the panel',
   model: null, projectPath: 'C:/work/mnemosyne', branch: 'main', isSidechain: false,
   firstEventAt: null, lastEventAt: null, tool: null, sizeBytes: 1,
-  artifacts: [], artifactsCapped: false, humanTurns: [], ...over,
+  artifacts: [], artifactsCapped: false, humanTurns: [], tokens: null, ...over,
 });
 
 describe('panelTitle', () => {

@@ -15,7 +15,7 @@ const session = (over: Partial<SessionState> = {}): SessionState => ({
   projectPath: 'C:/w', branch: 'main', isSidechain: false,
   firstEventAt: '2026-08-28T10:00:00Z',
   lastEventAt: '2026-08-28T11:00:00Z',
-  tool: null, sizeBytes: 1, artifacts: [], artifactsCapped: false, humanTurns: [], ...over,
+  tool: null, sizeBytes: 1, artifacts: [], artifactsCapped: false, humanTurns: [], tokens: null, ...over,
 });
 
 const doc = (path: string, mtime: number): DocState => ({

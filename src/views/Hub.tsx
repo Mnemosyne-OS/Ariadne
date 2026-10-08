@@ -123,7 +123,7 @@ export default function Hub({ t, statuses, candidates, onOpen, onPick, onConnect
                 </div>
                 {/* The provable fact, again: last signal, never a status. */}
                 <p className="agent-state muted">
-                  {last ? `${t.lastSeen} ${ago(last)}` : t.hubNothingYet}
+                  {last ? `${t.lastSeen} ${ago(last, t)}` : t.hubNothingYet}
                 </p>
               </>
             )}

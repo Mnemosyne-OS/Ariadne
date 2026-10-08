@@ -1,6 +1,6 @@
 {
   "name": "@mnemosyne-plugins/ariadne",
-  "version": "0.6.1",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "description": "Every draft your coding agents wrote, browsable, and the ones worth keeping one press from your memory. Reads the session transcripts and documents they already write on this machine, locally.",
@@ -31,7 +31,7 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.58.2",
     "vite": "^5.4.1",
-    "vitest": "^1.6.1"
+    "vitest": "^3.2.7"
   },
   "repository": {
     "type": "git",

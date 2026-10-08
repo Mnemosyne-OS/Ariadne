@@ -173,7 +173,7 @@ export default function NotesTab(props: Props): JSX.Element {
                   className={openFile === a.path ? 'open' : ''}
                   onClick={() => onOpenFile(openFile === a.path ? null : a.path)}
                 >
-                  <td className="ago">{ago(a.at)}</td>
+                  <td className="ago">{ago(a.at, t)}</td>
                   <td className="proj">{a.project ?? t.unknown}</td>
                   <td title={a.path}><code>{shortPath(a.path)}</code></td>
                   {/* The mark carries the vault name in its tooltip: "kept"

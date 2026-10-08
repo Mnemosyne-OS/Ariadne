@@ -7,7 +7,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { MnemoCartridgeSDK } from '../sdk/mnemo-sdk';
 import type { DocState, SessionState } from '@mnemosyne_os/agent-transcripts';
-import type { ExportedMark, Settings } from '../lib/settings';
+import type { ExportedMark, KeptConversationMark, Settings } from '../lib/settings';
+import KeepConversation from './KeepConversation';
+import KeepRule from './KeepRule';
+import { projectDirOf } from '../lib/keepConversation';
 import { notesForSession } from '../lib/sessionNotes';
 import { groupWrittenFiles, type WrittenBand } from '../lib/writtenFiles';
 import { buildSummaryPrompt, splitToneLine } from '../lib/summarise';
@@ -28,6 +31,14 @@ interface Props {
    *  what it did, never a claim that the file is still there. */
   exported: ExportedMark | undefined;
   onExported: (sessionPath: string, mark: ExportedMark) => void;
+  /** The last keep of THIS session in memory, if Ariadne made one. */
+  kept: KeptConversationMark | undefined;
+  lastKeepVault: string;
+  onKept: (paths: string[], vaultId: string, vaultName: string, at: string) => void;
+  /** The app can keep this harness's sessions (Claude Code, Antigravity). */
+  canKeep: boolean;
+  /** A standing rule exists for Claude Code projects only: its folder is the project. */
+  canKeepRule: boolean;
 }
 
 interface Summary { text: string; tone: string | null; used: number; total: number }
@@ -41,7 +52,11 @@ const BAND_LABEL: Record<WrittenBand, (t: Dict) => string> = {
 };
 
 export default function SessionDetail(props: Props): JSX.Element {
-  const { t, lang, sdk, settings, session, docs, onOpenNote, onOpenFile, exported, onExported } = props;
+  const {
+    t, lang, sdk, settings, session, docs, onOpenNote, onOpenFile, exported, onExported,
+    kept, lastKeepVault, onKept, canKeep, canKeepRule,
+  } = props;
+  const keepSessions = useMemo(() => [{ path: session.path, title: session.title ?? null }], [session.path, session.title]);
   const [summaries, setSummaries] = useState<Record<string, Summary>>({});
   const [writing, setWriting] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -187,7 +202,7 @@ export default function SessionDetail(props: Props): JSX.Element {
               data-testid="open-conversation"
               onClick={() => onOpenFile(exported.file)}
             >
-              {fill(t.exportedAt, { when: ago(exported.at), turns: exported.turns })}
+              {fill(t.exportedAt, { when: ago(exported.at, t), turns: exported.turns })}
             </button>
           )}
           {exported && exported.skipped > 0 && (
@@ -196,6 +211,21 @@ export default function SessionDetail(props: Props): JSX.Element {
           {exportError && <p className="caveat err">{exportError}</p>}
         </div>
       </section>
+
+      {canKeep && (
+        <section>
+          <h3>{t.keepConvTitle}</h3>
+          {kept && <p className="muted small">{fill(t.keptConvAt, { vault: kept.vault, when: ago(kept.at, t) })}</p>}
+          <KeepConversation t={t} sdk={sdk} sessions={keepSessions} lastVault={lastKeepVault} onKept={onKept} />
+        </section>
+      )}
+
+      {canKeepRule && (
+        <section>
+          <h3>{t.keepRuleTitle}</h3>
+          <KeepRule t={t} sdk={sdk} projectDir={projectDirOf(session.path)} lastVault={lastKeepVault} />
+        </section>
+      )}
 
       {(linked.written.length > 0 || linked.during.length > 0) && (
         <section>

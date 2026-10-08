@@ -109,11 +109,14 @@ describe('shipped connectors', () => {
   for (const { where, conn } of all.filter(c => c.conn.kind === 'session')) {
     describe(`${where} (session)`, () => {
       it('knows where the timestamp is, without which nothing sorts', () => {
-        expect(conn.fields.timestamp).toBeTruthy();
+        // `fields` is optional on the connector type since chat logs joined
+        // (c16572252); for a SESSION connector an absent map fails this the same
+        // way an absent timestamp does.
+        expect(conn.fields?.timestamp).toBeTruthy();
       });
 
       it('takes its session id from a field or from the directory, not from nowhere', () => {
-        expect(Boolean(conn.fields.sessionId) || conn.tree?.idFrom === 'dir').toBe(true);
+        expect(Boolean(conn.fields?.sessionId) || conn.tree?.idFrom === 'dir').toBe(true);
       });
 
       // The rule that keeps an open connector catalogue defensible: a

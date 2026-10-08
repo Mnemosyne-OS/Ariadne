@@ -7,6 +7,10 @@ export interface ScanStats {
   entries: number;
   sessionFiles: number;
   noteFiles: number;
+  /** Files the host refused to open this pass (too large, extension refused). */
+  unreadable?: number;
+  /** The first refusal's reason, as the host said it. */
+  refusal?: string;
 }
 
 /* ⛔ `LIVE_MINUTES` and `DirEntry` are NOT re-exported here. Every caller now

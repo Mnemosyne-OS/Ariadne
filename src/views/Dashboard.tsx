@@ -6,12 +6,17 @@
  * moved a moment ago, which is provable — never that the agent "is working".
  */
 import { useState } from 'react';
-import { minutesSince, type Collision, type Connector, type SessionState, type DocState } from '@mnemosyne_os/agent-transcripts';
+import {
+  minutesSince, totalCounts,
+  type Collision, type Connector, type SessionState, type DocState, type TokenCounts,
+} from '@mnemosyne_os/agent-transcripts';
 import SourceMark from './SourceMark';
 import { ago, baseName, sessionLabel } from '../lib/format';
 import { savedKey, type ExportedMark } from '../lib/settings';
 import { fileName, type ArtifactRow } from '../lib/artifactRows';
 import { fill, type Dict } from '../i18n';
+import Activity from './Activity';
+import { compact } from '../lib/activity';
 import type { ScanStats } from '../lib/shared';
 import { HOST_MAX_CARDS } from '../lib/cockpitCards';
 
@@ -28,6 +33,8 @@ const PAGE = 12;
 
 interface Props {
   t: Dict;
+  /** The shell's language, for the calendar's dates and grouped digits. */
+  lang: string;
   sessions: SessionState[];
   docs: DocState[];
   live: number;
@@ -76,13 +83,23 @@ interface Props {
   exported: Record<string, ExportedMark>;
   /** Opens one of those documents in the file drawer. */
   onOpenFile: (path: string) => void;
+  /**
+   * Sessions ticked for a keep in memory (doc 132 lot 1), by PATH. Null when
+   * this source cannot be kept yet: then the column is not drawn at all.
+   */
+  selected: ReadonlySet<string> | null;
+  onToggleSelect: (path: string) => void;
+  onClearSelection: () => void;
+  /** The keep panel for the ticked sessions, drawn above the table. */
+  keepSlot: JSX.Element | null;
 }
 
 export default function Dashboard(props: Props): JSX.Element {
   const {
-    t, sessions, docs, live, collisions, agentOf, unplaceable, busy, error, stats, folder,
+    t, lang, sessions, docs, live, collisions, agentOf, unplaceable, busy, error, stats, folder,
     openSession, onOpenSession, connector, pinned, onTogglePin, onPinLive, pinError, pinOmitted,
     agentPort, documents, onBrowseDocuments, exported, onOpenFile,
+    selected, onToggleSelect, onClearSelection, keepSlot,
   } = props;
   const [page, setPage] = useState(1);
   /** Four names fit the tile at the width the dashboard is read at; a fifth
@@ -204,6 +221,9 @@ export default function Dashboard(props: Props): JSX.Element {
       )}
 
       {error && <div className="warn err">{error}</div>}
+      {!error && (stats?.unreadable ?? 0) > 0 && (
+        <p className="caveat">{fill(t.unreadableSome, { n: stats!.unreadable!, why: stats!.refusal ?? '' })}</p>
+      )}
 
       {nothingFound && (
         <div className="empty">
@@ -212,12 +232,18 @@ export default function Dashboard(props: Props): JSX.Element {
             pattern: '.jsonl / .md',
             total: stats?.entries ?? 0,
           })}</p>
-          <p className="hint">{fill(t.emptyHint, { connector: 'Claude Code' })}</p>
+          <p className="hint">{fill(t.emptyHint, { connector: connector?.displayName ?? '' })}</p>
           <p className="path"><code>{folder}</code></p>
         </div>
       )}
 
       {busy && sessions.length === 0 && docs.length === 0 && <p className="empty">{t.reading}</p>}
+
+      {/* What the agents consumed, day by day. Above the table because it is
+          the shape of the month; the table below is the detail of today. */}
+      {sessions.length > 0 && (
+        <Activity t={t} lang={lang} sessions={sessions} filesFound={stats?.sessionFiles ?? sessions.length} />
+      )}
 
       {sessions.length > 0 && (
         <section className="block">
@@ -225,6 +251,13 @@ export default function Dashboard(props: Props): JSX.Element {
             <h2>{t.sessions}</h2>
             <SourceMark connector={connector} />
           </div>
+          {selected && selected.size > 0 && (
+            <div className="keep-bar" data-testid="keep-bar">
+              <span>{fill(t.keepConvSelected, { n: selected.size })}</span>
+              <button type="button" className="link" onClick={onClearSelection}>{t.keepConvClear}</button>
+              {keepSlot}
+            </div>
+          )}
           <table className="runs">
             <tbody>
               {shown.map(r => (
@@ -233,11 +266,22 @@ export default function Dashboard(props: Props): JSX.Element {
                   className={`${minutesSince(r.lastEventAt) < 2 ? 'fresh' : ''} ${openSession === r.path ? 'open' : ''}`}
                   onClick={() => onOpenSession(openSession === r.path ? null : r.path)}
                 >
-                  <td className="ago">{ago(r.lastEventAt)}</td>
+                  {selected && (
+                    <td className="sel" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(r.path)}
+                        aria-label={t.keepConvSelect}
+                        onChange={() => onToggleSelect(r.path)}
+                      />
+                    </td>
+                  )}
+                  <td className="ago">{ago(r.lastEventAt, t)}</td>
                   <td className="what">{renderLabel(r, t)}</td>
-                  <td className="dim">{baseName(r.projectPath) ?? t.unknown}</td>
-                  <td className="dim">{r.branch ?? t.unknown}</td>
+                  <td className="dim proj">{baseName(r.projectPath) ?? t.unknown}</td>
+                  <td className="dim branch">{r.branch ?? t.unknown}</td>
                   <td className="num">{r.artifacts.length || ''}{r.artifactsCapped ? '+' : ''}</td>
+                  <td className="tok">{renderTokens(r, lang, t)}</td>
                   <td className="kind">{r.isSidechain ? t.sidechain : ''}</td>
                   {/* Only where a document exists. An icon on all 211 rows,
                       most of them opening nothing, is a column of noise — and
@@ -292,4 +336,41 @@ function renderLabel(s: SessionState, t: Dict): JSX.Element {
   const { text, titled } = sessionLabel(s.title, s.humanTurns[0]?.text);
   if (!text) return <span className="dim">{t.unknown}</span>;
   return <span className={titled ? undefined : 'excerpt'} title={text}>{text}</span>;
+}
+
+/**
+ * What this session consumed, in the width of a column.
+ *
+ * TWO numbers and not one, because there is no honest single one: `↑` is what
+ * the provider had to read fresh, `↓` what the model wrote. The cache reads —
+ * by far the largest of the four counters, and the least meaningful on its own
+ * — stay in the tooltip with the exact figures.
+ *
+ * 🚨 A harness that records nothing gets an em dash, never a zero. "Used no
+ * tokens" and "never said" are different claims and only one of them is true.
+ */
+function renderTokens(s: SessionState, lang: string, t: Dict): JSX.Element {
+  const c: TokenCounts | null = totalCounts(s.tokens);
+  if (!c) return <span className="dim" title={t.tokensNotRecorded}>{t.unknown}</span>;
+  const fresh = c.input + c.cacheWrite;
+  const n = (v: number) => {
+    try { return v.toLocaleString(lang); } catch { return String(v); }
+  };
+  const title = [
+    `${n(c.calls)} ${t.metricCalls}`,
+    `${n(fresh)} ${t.metricFresh}`,
+    `${n(c.output)} ${t.metricOutput}${c.thinking > 0 ? ` (${n(c.thinking)} ${t.metricThinking})` : ''}`,
+    `${n(c.cacheRead)} ${t.metricCacheRead}`,
+  ].join('\n');
+  return (
+    <span title={title}>
+      {/* 🪤 The arrow is its own dimmed glyph and not part of the number:
+          rendered flush at 11px, `↑234k` reads as "1234k" — a figure ten
+          times the real one, and perfectly legible. Seen on screen, not in a
+          test. */}
+      <span className="up"><i>↑</i>{compact(fresh, lang)}</span>
+      {' '}
+      <span className="down"><i>↓</i>{compact(c.output, lang)}</span>
+    </span>
+  );
 }

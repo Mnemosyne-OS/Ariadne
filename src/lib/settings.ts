@@ -54,6 +54,21 @@ export interface Settings {
    * produced, from a transcript. Same shape, different claim.
    */
   exported: Record<string, ExportedMark>;
+  /**
+   * Conversations kept in memory (doc 132 lot 1), keyed by the SESSION's path.
+   * What Ariadne did, never a claim about the vault: the human may have
+   * removed the file since.
+   */
+  keptConversations: Record<string, KeptConversationMark>;
+  /** The vault (its workspace id) the last conversation keep wrote to. */
+  lastKeepVault: string;
+}
+
+export interface KeptConversationMark {
+  /** The vault's name as the human saw it. */
+  vault: string;
+  /** ISO timestamp of the keep. */
+  at: string;
 }
 
 export interface ExportedMark {
@@ -103,6 +118,8 @@ export const DEFAULTS: Settings = {
   saved: {},
   edited: {},
   exported: {},
+  keptConversations: {},
+  lastKeepVault: '',
 };
 
 /** One key for one file, whatever separators and case the OS handed back. */
@@ -149,6 +166,15 @@ export function rememberSaved(s: Settings, path: string, mark: SavedMark): Setti
  */
 export function rememberExported(s: Settings, sessionPath: string, mark: ExportedMark): Settings {
   return { ...s, exported: trimMarks({ ...s.exported, [savedKey(sessionPath)]: mark }) };
+}
+
+/** Records conversations kept in one press, and the vault for the next one. */
+export function rememberKeptConversations(
+  s: Settings, sessionPaths: string[], vaultId: string, mark: KeptConversationMark,
+): Settings {
+  const next = { ...s.keptConversations };
+  for (const p of sessionPaths) next[savedKey(p)] = mark;
+  return { ...s, keptConversations: trimMarks(next), lastKeepVault: vaultId };
 }
 
 export function rememberEdited(s: Settings, path: string, mark: EditedMark): Settings {

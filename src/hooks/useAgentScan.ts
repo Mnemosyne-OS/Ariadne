@@ -123,6 +123,7 @@ export function useAgentScan(
       noteFiles.sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0));
 
       let readError: string | null = null;
+      let refused = 0;
       const read = async (f: DirEntry): Promise<string | null> => {
         const res = await sdk.invoke<{ success: boolean; content?: string; error?: string }>(
           'dialog.readFile', { filePath: f.path });
@@ -131,6 +132,7 @@ export function useAgentScan(
           // empty folder, and that is how a host-side refusal (an extension
           // the bridge will not open, a file too large) stayed invisible.
           if (!readError) readError = res?.error ?? 'read refused';
+          refused++;
           console.warn(`[Ariadne] read refused for ${f.name}: ${readError}`);
           return null;
         }
@@ -148,10 +150,15 @@ export function useAgentScan(
         const content = await read(f);
         if (content === null) continue;
         const st = readSession(source.sessions, f.name, f.path, content, f.sizeBytes ?? 0);
-        if (st && !st.title) {
+        // A session with no title borrows the one-line summary of its task
+        // note, which only harnesses that write a notes sidecar have. Asked of
+        // every source, this was three refused reads per Claude Code session
+        // on every pass.
+        const sidecar = source.notes?.sidecar;
+        if (st && !st.title && sidecar) {
           const sessionDir = f.path.replace(/\\/g, '/').split('/').slice(0, -3).join('/');
           for (const noteName of ['task.md', 'implementation_plan.md', 'walkthrough.md']) {
-            const metaPath = `${sessionDir}/${noteName}.metadata.json`;
+            const metaPath = `${sessionDir}/${noteName}${sidecar.suffix}`;
             const res = await sdk.invoke<{ success: boolean; content?: string }>(
               'dialog.readFile', { filePath: metaPath });
             if (res?.success && typeof res.content === 'string') {
@@ -161,8 +168,8 @@ export function useAgentScan(
                   st.title = meta.summary.trim();
                   break;
                 }
-              } catch {
-                // Ignore parse error
+              } catch (err) {
+                console.warn(`[Ariadne] unreadable note sidecar ${metaPath}:`, err);
               }
             }
           }
@@ -218,7 +225,13 @@ export function useAgentScan(
         ...d,
         [source.id]: {
           sessions, docs, busy: false,
-          stats: { entries, sessionFiles: sessionFiles.length, noteFiles: noteFiles.length },
+          // 🚨 A refusal is counted even when other files read: one transcript
+          // over the host's ceiling among 200 used to vanish from the list
+          // without a word (only an ALL-refused folder said anything).
+          stats: {
+            entries, sessionFiles: sessionFiles.length, noteFiles: noteFiles.length,
+            ...(refused > 0 ? { unreadable: refused, refusal: readError ?? undefined } : {}),
+          },
           error: failed ? readError : null,
         },
       }));

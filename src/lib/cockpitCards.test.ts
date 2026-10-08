@@ -13,7 +13,7 @@ function session(patch: Partial<SessionState> & { path: string }): SessionState 
   return {
     file: 's.jsonl', sessionId: 'id', title: null, model: null, projectPath: null, branch: null,
     isSidechain: false, lastEventAt: null, firstEventAt: null, tool: null, sizeBytes: 0,
-    artifacts: [], artifactsCapped: false, humanTurns: [],
+    artifacts: [], artifactsCapped: false, humanTurns: [], tokens: null,
     ...patch,
   };
 }
