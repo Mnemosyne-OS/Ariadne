@@ -1,6 +1,6 @@
 {
   "name": "@mnemosyne-plugins/ariadne",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
   "description": "Every draft your coding agents wrote, browsable, and the ones worth keeping one press from your memory. Reads the session transcripts and documents they already write on this machine, locally.",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 - 2026-10-08
+
+Manifest only, no code change. Ariadne now declares keywords and a category,
+so Mnemosyne OS can propose it when someone describes what they want instead of
+typing its name.
+
 ## 0.6.0 - 2026-09-11
 
 The documents your agents write are the subject of this one: found from the
