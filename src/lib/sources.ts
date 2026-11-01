@@ -50,6 +50,12 @@ export const SOURCES: Source[] = [
     id: 'openclaw',
     sessions: CONNECTORS['openclaw'],
   },
+  {
+    // Cursor agent transcripts under ~/.cursor/projects. No notes sidecar:
+    // the harness keeps the conversation in the JSONL only. No `notes` entry.
+    id: 'cursor',
+    sessions: CONNECTORS['cursor'],
+  },
 ];
 
 export function sourceById(id: string | null): Source | null {

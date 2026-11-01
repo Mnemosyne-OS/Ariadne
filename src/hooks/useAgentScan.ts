@@ -149,7 +149,7 @@ export function useAgentScan(
         reads++;
         const content = await read(f);
         if (content === null) continue;
-        const st = readSession(source.sessions, f.name, f.path, content, f.sizeBytes ?? 0);
+        const st = readSession(source.sessions, f.name, f.path, content, f.sizeBytes ?? 0, f.mtime);
         // A session with no title borrows the one-line summary of its task
         // note, which only harnesses that write a notes sidecar have. Asked of
         // every source, this was three refused reads per Claude Code session

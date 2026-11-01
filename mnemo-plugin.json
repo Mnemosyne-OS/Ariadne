@@ -1,12 +1,13 @@
 {
   "name": "@mnemosyne-plugins/ariadne",
   "displayName": "Ariadne",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "keywords": [
     "transcript",
     "sessions",
     "coding",
     "antigravity",
+    "cursor",
     "drafts",
     "collisions",
     "branch"
@@ -37,5 +38,269 @@
       "defaultWidth": 1180,
       "defaultHeight": 760
     }
-  ]
+  ],
+  "agentGuide": [
+    "Name an agent, a session, a note or a file the way the person says it (« Claude Code », « la session carte neurale », « la note roadmap », « le fichier readme »): Ariadne finds it by its words, a path or an id still works. Several matches are refused with their names (AMBIGUOUS): pick one and call again; a name followed by a path in parentheses can be passed back as it is.",
+    "To look at something: openAgent for an agent's dashboard, showHub for the list of agents, openSession (no session = the last one seen), openNote, openFile, showTab for sessions or notes, stepPanel to go back in the side panel, closePanel to close it, showSettings for the gear.",
+    "« Recent » means the transcript moved in the last minutes, never that the agent is working: say « last seen », never « working ».",
+    "A session's or a file's content is never returned. Keeping anything in a vault, summarising, pinning, exporting and choosing a folder are the person's own presses in Ariadne."
+  ],
+  "agentActions": [
+    {
+      "id": "agents",
+      "summary": "The coding agents Ariadne can read on this machine: whether a folder is chosen for each, how many sessions and notes it holds, how many sessions were seen in the last minutes.",
+      "details": "recent means the transcript moved in the last minutes. It never means working: an idle agent and a stopped one fall silent the same way.",
+      "effect": "read",
+      "params": {}
+    },
+    {
+      "id": "sessions",
+      "summary": "One agent's sessions, last seen first: title, project, branch, model, when it was last seen, how many files it wrote.",
+      "details": "query matches the title, project or branch. recentOnly keeps the sessions seen in the last minutes. path identifies a session exactly.",
+      "effect": "read",
+      "params": {
+        "agent": {
+          "type": "string",
+          "description": "The agent, by name (« Claude Code ») or id; default the one on screen.",
+          "maxLength": 60
+        },
+        "query": {
+          "type": "string",
+          "description": "Words to look for in the title, project or branch.",
+          "maxLength": 200
+        },
+        "recentOnly": {
+          "type": "boolean",
+          "description": "Only the sessions seen in the last minutes."
+        },
+        "limit": {
+          "type": "number",
+          "description": "How many to return (default 30).",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    },
+    {
+      "id": "notes",
+      "summary": "The notes an agent keeps beside its sessions (memory notes, plans), most recently changed first.",
+      "effect": "read",
+      "params": {
+        "agent": {
+          "type": "string",
+          "description": "The agent, by name (« Claude Code ») or id; default the one on screen.",
+          "maxLength": 60
+        },
+        "query": {
+          "type": "string",
+          "description": "Words to look for in the name or description.",
+          "maxLength": 200
+        },
+        "limit": {
+          "type": "number",
+          "description": "How many to return (default 30).",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    },
+    {
+      "id": "files",
+      "summary": "The files an agent's sessions wrote (by a tool or through a shell), most recent first: path, how it is known, when, from which session. Never their content.",
+      "effect": "read",
+      "params": {
+        "agent": {
+          "type": "string",
+          "description": "The agent, by name (« Claude Code ») or id; default the one on screen.",
+          "maxLength": 60
+        },
+        "query": {
+          "type": "string",
+          "description": "Words to look for in the path.",
+          "maxLength": 200
+        },
+        "limit": {
+          "type": "number",
+          "description": "How many to return (default 30).",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    },
+    {
+      "id": "collisions",
+      "summary": "Recent sessions that share one project and branch, across every agent: a commit from either would pick up the other's work.",
+      "details": "unplaceable counts recent sessions whose agent records neither project nor branch: they are never grouped, never dropped.",
+      "effect": "read",
+      "params": {}
+    },
+    {
+      "id": "openAgent",
+      "summary": "Show one agent's dashboard on the person's screen, as a click in the hub does.",
+      "effect": "write",
+      "params": {
+        "agent": {
+          "type": "string",
+          "description": "The agent, by name (« Claude Code », « Antigravity ») or id.",
+          "maxLength": 60
+        }
+      },
+      "required": [
+        "agent"
+      ]
+    },
+    {
+      "id": "showHub",
+      "summary": "Go back to the hub, the list of every agent, on the person's screen (the ‹ button).",
+      "effect": "write",
+      "params": {}
+    },
+    {
+      "id": "openSession",
+      "summary": "Open a session in the side panel on the person's screen: what was asked, the files it wrote. Returns its facts, never its content.",
+      "details": "session is a path, an id, or the words of its title, project or branch (« carte neurale »); absent = the last session seen. Several matches are refused with their titles (AMBIGUOUS).",
+      "effect": "write",
+      "params": {
+        "agent": {
+          "type": "string",
+          "description": "The agent, by name (« Claude Code ») or id; default the one on screen.",
+          "maxLength": 60
+        },
+        "session": {
+          "type": "string",
+          "description": "The session's path, id, or the words of its title. Absent = the last one seen.",
+          "maxLength": 1000
+        }
+      }
+    },
+    {
+      "id": "openNote",
+      "summary": "Open one of an agent's notes in the side panel on the person's screen, and return its text (the first 4,000 characters).",
+      "details": "note is the path from notes, or the words of its name; several matches are refused with their names (AMBIGUOUS).",
+      "effect": "write",
+      "params": {
+        "agent": {
+          "type": "string",
+          "description": "The agent, by name (« Claude Code ») or id; default the one on screen.",
+          "maxLength": 60
+        },
+        "note": {
+          "type": "string",
+          "description": "The note's path, or the words of its name.",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "note"
+      ]
+    },
+    {
+      "id": "openFile",
+      "summary": "Open a file an agent's session wrote in the side panel on the person's screen. Returns its path and session, never its content.",
+      "details": "file is a path, or the words of its file name (« readme », « plan migration »); several matches are refused with their paths (AMBIGUOUS).",
+      "effect": "write",
+      "params": {
+        "agent": {
+          "type": "string",
+          "description": "The agent, by name (« Claude Code ») or id; default the one on screen.",
+          "maxLength": 60
+        },
+        "file": {
+          "type": "string",
+          "description": "The file's path, or the words of its name.",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "file"
+      ]
+    },
+    {
+      "id": "showTab",
+      "summary": "Show the sessions tab or the notes tab of an agent (the one on screen by default).",
+      "effect": "write",
+      "params": {
+        "tab": {
+          "type": "string",
+          "description": "runs (sessions) or yours (notes).",
+          "enum": [
+            "runs",
+            "yours"
+          ]
+        },
+        "agent": {
+          "type": "string",
+          "description": "The agent, by name (« Claude Code ») or id; default the one on screen.",
+          "maxLength": 60
+        }
+      },
+      "required": [
+        "tab"
+      ]
+    },
+    {
+      "id": "stepPanel",
+      "summary": "Go back or forward in the side panel, as its arrows do (to the session a file was opened from, and back again).",
+      "effect": "write",
+      "params": {
+        "step": {
+          "type": "string",
+          "description": "back (default) or forward.",
+          "enum": [
+            "back",
+            "forward"
+          ]
+        }
+      }
+    },
+    {
+      "id": "closePanel",
+      "summary": "Close the side panel on the person's screen.",
+      "effect": "write",
+      "params": {}
+    },
+    {
+      "id": "showSettings",
+      "summary": "Open or close Ariadne's settings on the person's screen (the gear). Nothing in them is changed.",
+      "effect": "write",
+      "params": {
+        "open": {
+          "type": "boolean",
+          "description": "true opens (default), false closes."
+        }
+      }
+    }
+  ],
+  "voiceCommands": {
+    "fr": [
+      "ouvre Claude Code",
+      "montre la dernière session",
+      "ouvre la session carte neurale",
+      "montre les notes",
+      "ouvre la note roadmap",
+      "ouvre le fichier readme",
+      "reviens à la liste des agents",
+      "ferme le panneau"
+    ],
+    "en": [
+      "open Claude Code",
+      "show the last session",
+      "open the neural map session",
+      "show the notes",
+      "open the roadmap note",
+      "open the readme file",
+      "go back to the list of agents",
+      "close the panel"
+    ],
+    "es": [
+      "abre Claude Code",
+      "muestra la última sesión",
+      "abre la sesión mapa neuronal",
+      "muestra las notas",
+      "abre la nota roadmap",
+      "abre el archivo readme",
+      "vuelve a la lista de agentes",
+      "cierra el panel"
+    ]
+  }
 }

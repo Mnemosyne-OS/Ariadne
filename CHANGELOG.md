@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0 - 2026-10-31
+
+### Added
+
+- **Cursor** joins the hub. Point the picker at `~/.cursor/projects` (or a
+  single project's `agent-transcripts` folder): sessions, tools, files written
+  (`Write` / `StrReplace` / shell redirections) and the person's
+  `<user_query>` turns. Vivacity uses the file's mtime — Cursor writes no
+  per-line clock. Badge traced from Cursor's own product icon (see NOTICE.md).
+
 ## 0.8.0 - 2026-10-01
 
 Keep a whole conversation with your coding agent in memory, so "why did we do

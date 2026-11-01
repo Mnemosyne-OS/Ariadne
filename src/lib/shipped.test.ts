@@ -111,8 +111,10 @@ describe('shipped connectors', () => {
       it('knows where the timestamp is, without which nothing sorts', () => {
         // `fields` is optional on the connector type since chat logs joined
         // (c16572252); for a SESSION connector an absent map fails this the same
-        // way an absent timestamp does.
-        expect(conn.fields?.timestamp).toBeTruthy();
+        // way an absent timestamp does. Cursor is the exception that proves the
+        // rule: it writes no per-line clock, so `eventTime: 'mtime'` is the
+        // measured substitute (file mtime), declared rather than faked as a path.
+        expect(Boolean(conn.fields?.timestamp) || conn.eventTime === 'mtime').toBe(true);
       });
 
       it('takes its session id from a field or from the directory, not from nowhere', () => {

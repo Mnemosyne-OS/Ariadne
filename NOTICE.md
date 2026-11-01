@@ -1,12 +1,13 @@
 # Third-party notices
 
-Ariadne draws a badge for each agent it reads. The three do not have the same
+Ariadne draws a badge for each agent it reads. They do not have the same
 provenance, and the difference is worth stating rather than smoothing over.
 
 | Badge | Where the shape comes from |
 |---|---|
 | **OpenClaw** | The publisher's own file, redistributed under its licence |
 | **Antigravity** (and its IDE) | Vectorised from the publisher's own installed icon |
+| **Cursor** | Traced from the publisher's own product icon path |
 | **Claude Code** | **Drawn here.** An approximation, not an official mark |
 
 ## OpenClaw
@@ -50,6 +51,20 @@ A hand-drawn arch was tried first. Rendered beside the real icon it was visibly
 fatter, with stubby legs and the wrong lean, so it was thrown away — which is
 the argument for tracing rather than remembering.
 
+## Cursor
+
+The silhouette is Cursor's own product icon: the `path` `d` from `CursorIcon`
+inside the installed app
+(`resources/app/molten/dist/renderer/assets/CursorIcon-*.js`, viewBox
+`0 0 49 56`), scaled uniformly by `24/56` and centred on x into the 24-unit
+badge. A scale, never a redraw. Tint is near-white so it reads on the dark hub;
+Cursor ships the same shape in `currentColor`.
+
+Cursor's packaging does not hand out a redistributable SVG with an MIT notice
+the way OpenClaw does. This is a trace of their installed artwork, same bar as
+Antigravity. If Anysphere would rather it were not used, removing it is one
+line in `cursor.json` and no code change.
+
 ## Claude Code
 
 **This one is drawn, and that is a real difference.** No Anthropic asset ships
@@ -66,7 +81,7 @@ day an official path becomes available: the connector is data.
 
 `SourceMark.tsx` still defaults to a plain text label, and that default is not
 an accident. In order of preference: **the publisher's own file** (OpenClaw),
-then **a trace of their own artwork** (Antigravity), and only then **a drawing,
-labelled as one** (Claude Code). A shape recalled from memory and presented
-without that label would be the thing to avoid — not because it looks worse, but
-because nothing on screen would say it is a guess.
+then **a trace of their own artwork** (Antigravity, Cursor), and only then **a
+drawing, labelled as one** (Claude Code). A shape recalled from memory and
+presented without that label would be the thing to avoid — not because it looks
+worse, but because nothing on screen would say it is a guess.

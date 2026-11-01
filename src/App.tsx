@@ -45,6 +45,7 @@ import EditBadge from './views/EditBadge';
 import SettingsView from './views/SettingsView';
 import CompactView from './views/CompactView';
 import { ConsentCard } from './views/FolderGate';
+import AriadneAgentActions from './views/AriadneAgentActions';
 
 const sdk = new MnemoCartridgeSDK('@mnemosyne-plugins/ariadne');
 
@@ -278,6 +279,42 @@ export default function App(): JSX.Element {
     ? editMark(openedFile.path, null, openedFile.at, settings)
     : null;
 
+  /** The drawer's close, shared by its button and by an agent (doc 149). */
+  const closePanel = () => { setEditing(false); setHistory(EMPTY_HISTORY); };
+
+  // Served at every zoom: the compact view and the full one return a fragment
+  // with this first, so zooming never drops an agent's call in flight.
+  const agentActions = (
+    <AriadneAgentActions
+      sdk={sdk}
+      agents={SOURCES.map(s => ({
+        id: s.id,
+        name: s.sessions.displayName,
+        connected: Boolean(settings.folders[s.id]),
+        hasNotes: Boolean(s.notes),
+        sessions: data[s.id]?.sessions ?? [],
+        docs: data[s.id]?.docs ?? [],
+        busy: data[s.id]?.busy ?? false,
+        error: data[s.id]?.error ?? null,
+      }))}
+      openAgentId={source ? source.id : null}
+      tab={tab}
+      panel={panel}
+      collisions={shared}
+      agentOf={shared.agentOf}
+      goToSource={goToSource}
+      setTab={setTab}
+      showSession={path => showSession(path)}
+      showNote={path => showNote(path)}
+      showFile={path => showFile(path)}
+      closePanel={closePanel}
+      canStep={{ back: canGoBack(history), forward: canGoForward(history) }}
+      stepPanel={step => { setEditing(false); setHistory(step === 'back' ? goBack : goForward); }}
+      settingsOpen={showSettings}
+      setSettingsOpen={setShowSettings}
+    />
+  );
+
   const behind = trail(history);
   const backLabel = canGoBack(history) ? labelFor(behind[behind.length - 1]) : null;
   const forwardLabel = canGoForward(history) ? labelFor(history.entries[history.cursor + 1]) : null;
@@ -352,10 +389,12 @@ export default function App(): JSX.Element {
     // whether ANY branch is shared, so it is recomputed across every agent.
     // Same computation as the near view, so the two cannot disagree.
     const sharedCount = shared.groups.length;
-    return <CompactView t={t} statuses={statuses} collisions={sharedCount} zoom={zoom} />;
+    return <>{agentActions}<CompactView t={t} statuses={statuses} collisions={sharedCount} zoom={zoom} /></>;
   }
 
   return (
+    <>
+    {agentActions}
     <div className="wrap">
       <header>
         <div className="head-left">
@@ -453,7 +492,7 @@ export default function App(): JSX.Element {
         title={title}
         subtitle={subtitle}
         closeLabel={t.close}
-        onClose={() => { setEditing(false); setHistory(EMPTY_HISTORY); }}
+        onClose={closePanel}
         backLabel={backLabel}
         forwardLabel={forwardLabel}
         onBack={() => { setEditing(false); setHistory(goBack); }}
@@ -515,5 +554,6 @@ export default function App(): JSX.Element {
         )}
       </Drawer>
     </div>
+    </>
   );
 }
