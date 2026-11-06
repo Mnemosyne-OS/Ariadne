@@ -1,7 +1,7 @@
 {
   "name": "@mnemosyne-plugins/ariadne",
   "displayName": "Ariadne",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "keywords": [
     "transcript",
     "sessions",
@@ -13,6 +13,7 @@
     "branch"
   ],
   "category": "System",
+  "icon": "public/icon.svg",
   "description": "Follow what your coding agents are doing, and keep the drafts worth keeping. Ariadne reads the session transcripts and memory notes your agents already write on this machine, lists every file they produced, including the ones written through a shell, and lets you send any of them into a vault you choose: one file, the conversations you pick, or a keep rule you set yourself and can revoke. It warns you when two sessions are live on the same branch, and can write a first-person summary of a session from your own messages. Nothing is read until you pick the folder, and nothing reaches memory without a press.",
   "permissions": [
     "dialog:open",

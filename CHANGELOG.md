@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1 - 2026-11-05
+
+### Fixed
+
+- The manifest points at the icon the cartridge already ships.
+
 ## 0.9.0 - 2026-10-31
 
 ### Added
