@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.2 - 2026-11-12
+
+### Fixed
+
+- Inside a Mnemosyne OS window the page leaves its ground to the window, so the theme picked in the app shows instead of a dark block.
+
 ## 0.9.1 - 2026-11-05
 
 ### Fixed
